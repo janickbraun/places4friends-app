@@ -8,7 +8,8 @@
     "scheme": "places4friendsmobileapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.janick.places4friends-mobile-app"
     },
     "android": {
       "adaptiveIcon": {
@@ -32,6 +33,20 @@
           "android": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
+          }
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.placeholder"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "buildReactNativeFromSource": true
           }
         }
       ]
