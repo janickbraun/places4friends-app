@@ -29,6 +29,7 @@ export async function uploadActivityImages(
 export interface NewRecommendation {
   userId: string;
   placeName: string;
+  placeAddress: string | null;
   latitude: number | null;
   longitude: number | null;
   isSuperlike: boolean;
@@ -41,6 +42,7 @@ export function createRecommendation(rec: NewRecommendation) {
   return supabase.from('activities').insert({
     user_id: rec.userId,
     place_name: rec.placeName,
+    place_address: rec.placeAddress,
     latitude: rec.latitude,
     longitude: rec.longitude,
     is_superlike: rec.isSuperlike,
