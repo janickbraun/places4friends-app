@@ -12,6 +12,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       ...(config.ios?.infoPlist ?? {}),
       NSLocationWhenInUseUsageDescription:
         'Wir verwenden deinen Standort, um Orte in deiner Nähe auf der Karte anzuzeigen.',
+      NSPhotoLibraryUsageDescription:
+        'Wir verwenden deine Fotos, um sie zu deinen Ortsempfehlungen hinzuzufügen.',
     },
   },
   android: {
