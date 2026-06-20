@@ -140,6 +140,7 @@ function Feed({ user }: { user: User }) {
               categories={item.categories}
               timestamp={item.timestamp}
               friend={item.friend}
+              onPressFriend={(id) => router.push(`/profile/${id}`)}
               imageUrls={item.imageUrls}
               bottomLeftActions={
                 <>

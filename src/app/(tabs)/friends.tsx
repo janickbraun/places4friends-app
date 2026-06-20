@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { Check, Clock, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
@@ -36,27 +37,34 @@ function PersonRow({
   username,
   avatarUrl,
   trailing,
+  onPress,
 }: {
   name: string;
   username: string | null;
   avatarUrl: string | null;
   trailing: ReactNode;
+  onPress?: () => void;
 }) {
   return (
     <View className="flex-row items-center justify-between py-3">
-      <View className="flex-1 flex-row items-center gap-3">
+      <Pressable
+        className="flex-1 flex-row items-center gap-3"
+        disabled={!onPress}
+        onPress={onPress}
+      >
         <Avatar url={avatarUrl} name={name} size={36} />
         <View className="flex-1">
           <Text className="text-xs font-bold text-slate-900">{name}</Text>
           {username ? <Text className="mt-0.5 text-[10px] text-slate-400">@{username}</Text> : null}
         </View>
-      </View>
+      </Pressable>
       <View className="flex-row items-center gap-2">{trailing}</View>
     </View>
   );
 }
 
 function FriendsContent({ user }: { user: User }) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>('friends');
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [incoming, setIncoming] = useState<FriendProfile[]>([]);
@@ -245,6 +253,7 @@ function FriendsContent({ user }: { user: User }) {
                 {friends.map((f) => (
                   <PersonRow
                     key={f.id}
+                    onPress={() => router.push(`/profile/${f.id}`)}
                     name={f.fullName ?? 'User'}
                     username={f.username}
                     avatarUrl={f.avatarUrl}
@@ -283,6 +292,7 @@ function FriendsContent({ user }: { user: User }) {
                 {incoming.map((f) => (
                   <PersonRow
                     key={f.id}
+                    onPress={() => router.push(`/profile/${f.id}`)}
                     name={f.fullName ?? 'User'}
                     username={f.username}
                     avatarUrl={f.avatarUrl}
@@ -326,6 +336,7 @@ function FriendsContent({ user }: { user: User }) {
                 {outgoing.map((f) => (
                   <PersonRow
                     key={f.id}
+                    onPress={() => router.push(`/profile/${f.id}`)}
                     name={f.fullName ?? 'User'}
                     username={f.username}
                     avatarUrl={f.avatarUrl}

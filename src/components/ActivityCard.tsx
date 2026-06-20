@@ -14,6 +14,7 @@ type Props = {
   categories?: string[];
   timestamp?: string;
   friend?: FeedFriend;
+  onPressFriend?: (friendId: string) => void;
   imageUrls?: string[];
   bottomLeftActions?: ReactNode;
   children?: ReactNode;
@@ -29,6 +30,7 @@ export default function ActivityCard({
   categories = [],
   timestamp,
   friend,
+  onPressFriend,
   imageUrls = [],
   bottomLeftActions,
   children,
@@ -109,7 +111,12 @@ export default function ActivityCard({
 
       {/* Friend header */}
       {friend ? (
-        <View className="flex-row items-center gap-2 pt-3">
+        <Pressable
+          className="flex-row items-center gap-2 pt-3"
+          disabled={!onPressFriend}
+          onPress={() => onPressFriend?.(friend.id)}
+          hitSlop={4}
+        >
           <View
             className="h-6 w-6 items-center justify-center overflow-hidden rounded-full"
             style={{ backgroundColor: friend.color }}
@@ -121,7 +128,7 @@ export default function ActivityCard({
             )}
           </View>
           <Text className="text-[11px] font-bold text-slate-700">{friend.name}</Text>
-        </View>
+        </Pressable>
       ) : null}
 
       {/* Bottom actions */}

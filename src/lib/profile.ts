@@ -157,6 +157,71 @@ export async function fetchWishlistActivities(userId: string): Promise<FeedActiv
   return decorate(rows, (uid) => profileToFriend(map.get(uid) ?? null, uid));
 }
 
+export interface PublicFriendship {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  status: 'pending' | 'accepted';
+}
+
+export interface PublicProfileData {
+  profile: ProfileInfo;
+  friendsCount: number;
+  friendship: PublicFriendship | null;
+  places: FeedActivity[];
+  wishlistedIds: string[];
+}
+
+/**
+ * Load a public profile: its info, accepted-friend count, the viewer's
+ * relationship to it, and (only when befriended) its recommendations — matching
+ * the web PublicProfileView privacy gate. RLS returns no activities for
+ * non-friends anyway, so gating the fetch is purely an optimisation.
+ */
+export async function fetchPublicProfile(
+  profileId: string,
+  currentUserId: string,
+): Promise<PublicProfileData | null> {
+  const profile = await fetchProfileInfo(profileId);
+  if (!profile) return null;
+
+  const [countRes, friendshipRes, wishlistRes] = await Promise.all([
+    supabase
+      .from('friendships')
+      .select('*', { count: 'exact', head: true })
+      .or(`sender_id.eq.${profileId},receiver_id.eq.${profileId}`)
+      .eq('status', 'accepted'),
+    supabase
+      .from('friendships')
+      .select('id, sender_id, receiver_id, status')
+      .or(
+        `and(sender_id.eq.${currentUserId},receiver_id.eq.${profileId}),and(sender_id.eq.${profileId},receiver_id.eq.${currentUserId})`,
+      )
+      .limit(1),
+    supabase.from('wishlist').select('activity_id').eq('user_id', currentUserId),
+  ]);
+
+  const rel = friendshipRes.data?.[0];
+  const friendship: PublicFriendship | null = rel
+    ? {
+        id: rel.id,
+        senderId: rel.sender_id,
+        receiverId: rel.receiver_id,
+        status: rel.status as 'pending' | 'accepted',
+      }
+    : null;
+
+  const places = friendship?.status === 'accepted' ? await fetchUserActivities(profileId) : [];
+
+  return {
+    profile,
+    friendsCount: countRes.count ?? 0,
+    friendship,
+    places,
+    wishlistedIds: (wishlistRes.data ?? []).map((w) => w.activity_id),
+  };
+}
+
 function extractActivityImagePath(url: string): string | null {
   const marker = '/activity-images/';
   const idx = url.indexOf(marker);
