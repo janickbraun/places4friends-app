@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { Check, Clock, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
+import VerificationBanner from '@/components/VerificationBanner';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
@@ -214,6 +215,7 @@ function FriendsContent({ user }: { user: User }) {
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+      <VerificationBanner />
       {Header}
       {Tabs}
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}>

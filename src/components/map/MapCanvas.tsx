@@ -31,7 +31,7 @@ import { fetchFriendships, type FriendProfile } from '@/lib/friends';
 import { PLACE_CATEGORIES } from '@/lib/categories';
 import { getUserColor } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
-import { PlaceMarker } from '@/components/map/PlaceMarker';
+import { PlaceMapMarker } from '@/components/map/PlaceMarker';
 import { ClusterMarker } from '@/components/map/ClusterMarker';
 import { PlaceDetailSheet } from '@/components/map/PlaceDetailSheet';
 import { Avatar } from '@/components/ui/Avatar';
@@ -58,6 +58,7 @@ export default function MapCanvas() {
   const [mustSee, setMustSee] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const regionRef = useRef(region);
   const filtersRef = useRef<MapPinFilters>({});
@@ -93,6 +94,7 @@ export default function MapCanvas() {
       await loadPins();
     })();
     void supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id ?? null);
       if (data.user) fetchFriendships(data.user.id).then((f) => setFriends(f.friends));
     });
   }, [loadPins]);
@@ -240,14 +242,12 @@ export default function MapCanvas() {
           }
           const { pin } = c.properties;
           return (
-            <Marker
+            <PlaceMapMarker
               key={pin.id}
+              pin={pin}
               coordinate={{ latitude: lat, longitude: lng }}
               onPress={() => handlePinPress(pin)}
-              tracksViewChanges={false}
-            >
-              <PlaceMarker pin={pin} />
-            </Marker>
+            />
           );
         })}
       </MapView>
@@ -474,6 +474,7 @@ export default function MapCanvas() {
         pin={selectedPin}
         details={details}
         loading={detailsLoading}
+        currentUserId={currentUserId}
         onClose={() => setSelectedPin(null)}
       />
     </View>

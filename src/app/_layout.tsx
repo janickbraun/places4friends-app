@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import AuthProvider, { useAuth } from '@/components/auth/AuthProvider';
+import OnboardingOverlay from '@/components/OnboardingOverlay';
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <RootNavigator />
+            <OnboardingOverlay />
             <StatusBar style="dark" />
           </AuthProvider>
         </QueryClientProvider>

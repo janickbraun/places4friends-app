@@ -6,6 +6,7 @@ import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { Bookmark, Compass, MessageCircle, Users } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
+import VerificationBanner from '@/components/VerificationBanner';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
@@ -107,6 +108,7 @@ function Feed({ user }: { user: User }) {
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+      <VerificationBanner />
       {Header}
       <FlatList
         data={activities}

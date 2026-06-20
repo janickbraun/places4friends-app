@@ -51,3 +51,28 @@ export function createRecommendation(rec: NewRecommendation) {
     image_urls: rec.imageUrls,
   });
 }
+
+export interface UpdateRecommendation {
+  id: string;
+  userId: string;
+  placeName: string;
+  isSuperlike: boolean;
+  description: string;
+  categories: string[];
+  imageUrls: string[];
+}
+
+/** Update an own recommendation (RLS scopes to user_id) — mirrors web PATCH. */
+export function updateRecommendation(rec: UpdateRecommendation) {
+  return supabase
+    .from('activities')
+    .update({
+      place_name: rec.placeName,
+      description: rec.description || null,
+      is_superlike: rec.isSuperlike,
+      categories: rec.categories,
+      image_urls: rec.imageUrls,
+    })
+    .eq('id', rec.id)
+    .eq('user_id', rec.userId);
+}

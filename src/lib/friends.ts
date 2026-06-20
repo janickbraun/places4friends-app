@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { getAvatarUrl } from '@/lib/format';
+import { SITE_URL } from '@/lib/site';
 
 export interface FriendProfile {
   id: string;
@@ -119,7 +120,6 @@ export function deleteFriendship(friendshipId: string) {
   return supabase.from('friendships').delete().eq('id', friendshipId);
 }
 
-const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://places4friends.com';
 const INVITE_MAX_USES = 10;
 const INVITE_VALIDITY_DAYS = 30;
 

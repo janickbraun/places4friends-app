@@ -2,10 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import type { User } from '@supabase/supabase-js';
-import { LogOut, MapPin, Trash2 } from 'lucide-react-native';
+import { LogOut, MapPin, Pencil, Settings, Trash2 } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
+import VerificationBanner from '@/components/VerificationBanner';
+import LegalFooter from '@/components/LegalFooter';
+import EditRecommendationSheet from '@/components/EditRecommendationSheet';
 import { supabase } from '@/lib/supabase';
 import { getInitials, getUserColor } from '@/lib/format';
 import type { FeedActivity } from '@/lib/activities';
@@ -31,12 +35,14 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 function ProfileContent({ user }: { user: User }) {
+  const router = useRouter();
   const [info, setInfo] = useState<ProfileInfo | null>(null);
   const [stats, setStats] = useState<ProfileStats>({ recommendations: 0, friends: 0, saves: 0 });
   const [recs, setRecs] = useState<FeedActivity[]>([]);
   const [saved, setSaved] = useState<FeedActivity[]>([]);
   const [tab, setTab] = useState<Tab>('recs');
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<FeedActivity | null>(null);
   const mounted = useRef(true);
 
   const load = useCallback(async () => {
@@ -152,15 +158,24 @@ function ProfileContent({ user }: { user: User }) {
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+      <VerificationBanner />
       <View className="h-14 flex-row items-center justify-center border-b border-slate-100 bg-white">
         <Text className="text-sm font-bold text-slate-900">Profil</Text>
         <Pressable
           onPress={confirmSignOut}
           accessibilityLabel="Abmelden"
-          className="absolute right-3 h-9 w-9 items-center justify-center rounded-full"
+          className="absolute left-3 h-9 w-9 items-center justify-center rounded-full"
           hitSlop={6}
         >
           <LogOut size={18} color="#64748b" />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/profile/settings')}
+          accessibilityLabel="Einstellungen"
+          className="absolute right-3 h-9 w-9 items-center justify-center rounded-full"
+          hitSlop={6}
+        >
+          <Settings size={18} color="#64748b" />
         </Pressable>
       </View>
 
@@ -168,6 +183,7 @@ function ProfileContent({ user }: { user: User }) {
         data={data}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={ListHeader}
+        ListFooterComponent={<LegalFooter />}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, gap: 16 }}
         ListEmptyComponent={
           <View className="mt-10 items-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12">
@@ -193,17 +209,36 @@ function ProfileContent({ user }: { user: User }) {
             imageUrls={item.imageUrls}
             bottomLeftActions={
               tab === 'recs' ? (
-                <Pressable
-                  onPress={() => confirmDelete(item)}
-                  className="flex-row items-center gap-1.5 p-1"
-                  hitSlop={6}
-                >
-                  <Trash2 size={18} color="#f43f5e" />
-                </Pressable>
+                <>
+                  <Pressable
+                    onPress={() => setEditing(item)}
+                    className="flex-row items-center gap-1.5 p-1"
+                    hitSlop={6}
+                  >
+                    <Pencil size={18} color="#64748b" />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => confirmDelete(item)}
+                    className="flex-row items-center gap-1.5 p-1"
+                    hitSlop={6}
+                  >
+                    <Trash2 size={18} color="#f43f5e" />
+                  </Pressable>
+                </>
               ) : undefined
             }
           />
         )}
+      />
+
+      <EditRecommendationSheet
+        activity={editing}
+        userId={user.id}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null);
+          void load();
+        }}
       />
     </SafeAreaView>
   );
