@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase';
+
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
 const SEARCHBOX = 'https://api.mapbox.com/search/searchbox/v1';
 
@@ -8,6 +10,14 @@ export interface PlaceSuggestion {
   latitude: number | null;
   longitude: number | null;
 }
+
+type EdgePlaceResult = {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+};
 
 type MapboxFeature = {
   id?: string;
@@ -37,12 +47,53 @@ function toSuggestion(f: MapboxFeature): PlaceSuggestion {
   };
 }
 
-/** Forward place search via the Mapbox Search Box API (matches the web's fallback). */
+/**
+ * Forward place search. Routes through the `places-search` Edge Function, which
+ * uses Google Places when GOOGLE_PLACES_API_KEY is configured server-side and
+ * otherwise falls back to Mapbox (via the public token we pass along). If the
+ * function call fails entirely, we fall back to a direct Mapbox request so search
+ * keeps working offline of the edge function. Matches the web's Google→Mapbox order.
+ */
 export async function searchPlaces(
   query: string,
   proximity?: { latitude: number; longitude: number },
 ): Promise<PlaceSuggestion[]> {
-  if (!MAPBOX_TOKEN || !query.trim()) return [];
+  if (!query.trim()) return [];
+
+  try {
+    const { data, error } = await supabase.functions.invoke<{ results?: EdgePlaceResult[] }>(
+      'places-search',
+      {
+        body: {
+          query,
+          lat: proximity?.latitude ?? null,
+          lng: proximity?.longitude ?? null,
+          mapboxToken: MAPBOX_TOKEN ?? null,
+        },
+      },
+    );
+    if (!error && data?.results) {
+      return data.results.map((r) => ({
+        id: r.id,
+        name: r.name || 'Unbekannter Ort',
+        address: r.address ?? '',
+        latitude: r.latitude,
+        longitude: r.longitude,
+      }));
+    }
+  } catch {
+    // fall through to the direct Mapbox request below
+  }
+
+  return searchPlacesViaMapbox(query, proximity);
+}
+
+/** Direct Mapbox Search Box request — fallback when the Edge Function is unreachable. */
+async function searchPlacesViaMapbox(
+  query: string,
+  proximity?: { latitude: number; longitude: number },
+): Promise<PlaceSuggestion[]> {
+  if (!MAPBOX_TOKEN) return [];
   const url = new URL(`${SEARCHBOX}/forward`);
   url.searchParams.set('q', query);
   url.searchParams.set('access_token', MAPBOX_TOKEN);
