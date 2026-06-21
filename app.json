@@ -1,19 +1,21 @@
 {
   "expo": {
-    "name": "places4friends-mobile-app",
+    "name": "places4friends",
     "slug": "places4friends-mobile-app",
     "version": "1.0.0",
+    "description": "Erstelle eine interaktive Karte mit deinen Freunden. Empfiehl Restaurants, Bars, Cafés und Aktivitäten ohne anonyme Reise-Bewertungen - direkt von deinen Freunden empfohlen.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "places4friendsmobileapp",
     "userInterfaceStyle": "automatic",
+    "primaryColor": "#226622",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.janick.places4friends-mobile-app"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#226622",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,10 +32,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
+          "backgroundColor": "#226622",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "dark": {
+            "backgroundColor": "#226622",
             "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
+            "imageWidth": 200
           }
         }
       ],
