@@ -38,12 +38,14 @@ import {
 type Tab = 'friends' | 'requests';
 
 function PersonRow({
+  id,
   name,
   username,
   avatarUrl,
   trailing,
   onPress,
 }: {
+  id?: string;
   name: string;
   username: string | null;
   avatarUrl: string | null;
@@ -57,7 +59,7 @@ function PersonRow({
         disabled={!onPress}
         onPress={onPress}
       >
-        <Avatar url={avatarUrl} name={name} size={36} />
+        <Avatar url={avatarUrl} name={name} id={id} size={36} />
         <View className="flex-1">
           <Text className="text-xs font-bold text-slate-900">{name}</Text>
           {username ? <Text className="mt-0.5 text-[10px] text-slate-400">@{username}</Text> : null}
@@ -317,6 +319,7 @@ function FriendsContent({ user }: { user: User }) {
                 {friends.map((f) => (
                   <PersonRow
                     key={f.id}
+                    id={f.id}
                     onPress={() => router.push(`/profile/${f.id}`)}
                     name={f.fullName ?? 'User'}
                     username={f.username}
@@ -359,6 +362,7 @@ function FriendsContent({ user }: { user: User }) {
                 {incoming.map((f) => (
                   <PersonRow
                     key={f.id}
+                    id={f.id}
                     onPress={() => router.push(`/profile/${f.id}`)}
                     name={f.fullName ?? 'User'}
                     username={f.username}
@@ -403,6 +407,7 @@ function FriendsContent({ user }: { user: User }) {
                 {outgoing.map((f) => (
                   <PersonRow
                     key={f.id}
+                    id={f.id}
                     onPress={() => router.push(`/profile/${f.id}`)}
                     name={f.fullName ?? 'User'}
                     username={f.username}
@@ -509,6 +514,7 @@ function FriendsContent({ user }: { user: User }) {
                   return (
                     <PersonRow
                       key={p.id}
+                      id={p.id}
                       onPress={() => openProfile(p.id)}
                       name={name}
                       username={p.username}

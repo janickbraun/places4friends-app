@@ -4,6 +4,13 @@ import { Image } from 'expo-image';
 import { MapPin, Navigation, Sparkles, X } from 'lucide-react-native';
 import type { FeedFriend } from '@/lib/activities';
 
+const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+
+/** Mapbox static map image of the place — the default first tile on every post. */
+function staticMapUrl(lat: number, lng: number, size: string): string {
+  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+22c55e(${lng},${lat})/${lng},${lat},15.5/${size}@2x?access_token=${MAPBOX_TOKEN}`;
+}
+
 type Props = {
   id: string;
   placeName: string;
@@ -39,7 +46,10 @@ export default function ActivityCard({
 }: Props) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const hasCoords = latitude != null && longitude != null;
-  const single = imageUrls.length === 1;
+  const hasMap = hasCoords && !!MAPBOX_TOKEN;
+  const tileCount = (hasMap ? 1 : 0) + imageUrls.length;
+  const single = tileCount === 1;
+  const mapUrl = hasMap ? staticMapUrl(latitude!, longitude!, single ? '800x300' : '600x600') : null;
 
   const openMaps = () => {
     const url = hasCoords
@@ -73,9 +83,28 @@ export default function ActivityCard({
         </View>
       </View>
 
-      {/* Images */}
-      {imageUrls.length > 0 ? (
+      {/* Media: map snapshot (default first tile) + uploaded images */}
+      {tileCount > 0 ? (
         <View className="flex-row flex-wrap gap-2 pt-3">
+          {mapUrl ? (
+            <Pressable
+              onPress={openMaps}
+              accessibilityLabel="Auf Karte ansehen"
+              style={{ width: single ? '100%' : '48%' }}
+            >
+              <Image
+                source={{ uri: mapUrl }}
+                style={{
+                  width: '100%',
+                  aspectRatio: single ? 21 / 9 : 1,
+                  borderRadius: 12,
+                  backgroundColor: '#f1f5f9',
+                }}
+                contentFit="cover"
+                transition={150}
+              />
+            </Pressable>
+          ) : null}
           {imageUrls.map((url) => (
             <Pressable
               key={url}

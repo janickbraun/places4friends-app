@@ -27,7 +27,6 @@ import {
 import { searchPlaces, type PlaceSuggestion } from '@/lib/places';
 import { fetchFriendships, type FriendProfile } from '@/lib/friends';
 import { PLACE_CATEGORIES } from '@/lib/categories';
-import { getUserColor } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
 import { PlaceMapMarker } from '@/components/map/PlaceMarker';
 import { ClusterMarker } from '@/components/map/ClusterMarker';
@@ -419,12 +418,7 @@ export default function MapCanvas() {
                     active ? 'border-brand-green-800 bg-brand-green-800' : 'border-slate-100 bg-white/95'
                   }`}
                 >
-                  <View
-                    className="h-6 w-6 items-center justify-center overflow-hidden rounded-full"
-                    style={{ backgroundColor: getUserColor(friend.id) }}
-                  >
-                    <Avatar url={friend.avatarUrl} name={friend.fullName} size={24} />
-                  </View>
+                  <Avatar url={friend.avatarUrl} name={friend.fullName} id={friend.id} size={24} />
                   <Text
                     className={`text-xs font-semibold ${active ? 'text-white' : 'text-slate-700'}`}
                   >
