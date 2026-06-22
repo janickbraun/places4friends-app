@@ -13,7 +13,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import MapView, { Marker, type MapPressEvent, type Region } from 'react-native-maps';
+import MapView, {
+  Marker,
+  type MapPressEvent,
+  type PoiClickEvent,
+  type Region,
+} from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import type { User } from '@supabase/supabase-js';
@@ -114,6 +119,20 @@ export default function CreateRecommendation({ user }: { user: User }) {
     if (place) {
       if (place.name) setPlaceName(place.name);
       setPlaceAddress(place.address);
+    }
+  };
+
+  // Tapping a labelled place (POI) on the map prefills its name directly.
+  const handlePoiClick = async (e: PoiClickEvent) => {
+    const { coordinate, name } = e.nativeEvent;
+    setPlaceName(name ?? '');
+    setPlaceAddress('');
+    openSheetAt(coordinate);
+    // Still reverse-geocode for the address (and a name fallback if the POI had none).
+    const place = await reverseGeocode(coordinate.latitude, coordinate.longitude);
+    if (place) {
+      setPlaceAddress(place.address);
+      if (!name && place.name) setPlaceName(place.name);
     }
   };
 
@@ -220,6 +239,7 @@ export default function CreateRecommendation({ user }: { user: User }) {
         mapType={mapLayer}
         initialRegion={region}
         onPress={handleMapPress}
+        onPoiClick={handlePoiClick}
         showsUserLocation
         showsMyLocationButton={false}
       >
