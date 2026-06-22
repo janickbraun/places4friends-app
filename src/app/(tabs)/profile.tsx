@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import type { User } from '@supabase/supabase-js';
-import { LogOut, MapPin, MessageCircle, Pencil, Settings, Trash2 } from 'lucide-react-native';
+import { MapPin, MessageCircle, Pencil, Settings, Trash2 } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
 import { CommentsThread } from '@/components/activities/CommentsThread';
@@ -13,7 +13,6 @@ import { PopoverMenu } from '@/components/ui/PopoverMenu';
 import VerificationBanner from '@/components/VerificationBanner';
 import LegalFooter from '@/components/LegalFooter';
 import EditRecommendationSheet from '@/components/EditRecommendationSheet';
-import { supabase } from '@/lib/supabase';
 import { getInitials, getUserColor } from '@/lib/format';
 import type { FeedActivity } from '@/lib/activities';
 import {
@@ -68,13 +67,6 @@ function ProfileContent({ user }: { user: User }) {
       mounted.current = false;
     };
   }, [load]);
-
-  const confirmSignOut = () => {
-    Alert.alert('Abmelden?', 'Möchtest du dich wirklich abmelden?', [
-      { text: 'Abbrechen', style: 'cancel' },
-      { text: 'Abmelden', style: 'destructive', onPress: () => void supabase.auth.signOut() },
-    ]);
-  };
 
   const pickAvatar = async () => {
     if (uploadingAvatar) return;
@@ -199,14 +191,6 @@ function ProfileContent({ user }: { user: User }) {
       <VerificationBanner />
       <View className="h-14 flex-row items-center justify-center border-b border-slate-100 bg-white">
         <Text className="text-sm font-bold text-slate-900">Profil</Text>
-        <Pressable
-          onPress={confirmSignOut}
-          accessibilityLabel="Abmelden"
-          className="absolute left-3 h-9 w-9 items-center justify-center rounded-full"
-          hitSlop={6}
-        >
-          <LogOut size={18} color="#64748b" />
-        </Pressable>
         <Pressable
           onPress={() => router.push('/profile/settings')}
           accessibilityLabel="Einstellungen"

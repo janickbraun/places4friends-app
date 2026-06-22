@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -18,6 +19,7 @@ import {
   ChevronRight,
   Download,
   Lock,
+  LogOut,
   Mail,
   Shield,
   Sparkles,
@@ -373,6 +375,13 @@ function SettingsContent({ user }: { user: User }) {
     router.replace('/');
   };
 
+  const confirmSignOut = () => {
+    Alert.alert('Abmelden?', 'Möchtest du dich wirklich abmelden?', [
+      { text: 'Abbrechen', style: 'cancel' },
+      { text: 'Abmelden', style: 'destructive', onPress: () => void supabase.auth.signOut() },
+    ]);
+  };
+
   const Header = (
     <View className="h-14 flex-row items-center justify-between border-b border-slate-100 bg-white px-4">
       <Pressable onPress={() => router.back()} hitSlop={8} className="h-8 w-8 items-center justify-center rounded-lg">
@@ -487,6 +496,15 @@ function SettingsContent({ user }: { user: User }) {
             />
           </View>
         </View>
+
+        {/* Abmelden */}
+        <Pressable
+          onPress={confirmSignOut}
+          className="flex-row items-center justify-center gap-2 rounded-3xl border border-slate-100 bg-white py-3.5 active:bg-slate-50"
+        >
+          <LogOut size={17} color="#e11d48" />
+          <Text className="text-sm font-bold text-rose-600">Abmelden</Text>
+        </Pressable>
 
         <LegalFooter />
       </ScrollView>
