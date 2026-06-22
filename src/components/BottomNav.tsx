@@ -182,7 +182,7 @@ export default function BottomNav({ state, navigation }: BottomNavProps) {
                 if (isActive) return;
                 navigation.navigate(tab.name);
               }}
-              className="w-16 items-center justify-center gap-1 rounded-xl py-2"
+              className="flex-1 items-center justify-center gap-1 rounded-xl py-2"
               style={{ transform: [{ scale: isActive ? 1.05 : 1 }] }}
             >
               <View className="relative">
@@ -202,6 +202,8 @@ export default function BottomNav({ state, navigation }: BottomNavProps) {
               </View>
               <Text
                 numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
                 className={`text-[10px] tracking-wide ${
                   isActive ? 'font-bold text-brand-green-600' : 'text-slate-400'
                 }`}
