@@ -5,9 +5,10 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import type { User } from '@supabase/supabase-js';
-import { LogOut, MapPin, Pencil, Settings, Trash2 } from 'lucide-react-native';
+import { LogOut, MapPin, MessageCircle, MoreVertical, Pencil, Settings } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
+import { CommentsThread } from '@/components/activities/CommentsThread';
 import VerificationBanner from '@/components/VerificationBanner';
 import LegalFooter from '@/components/LegalFooter';
 import EditRecommendationSheet from '@/components/EditRecommendationSheet';
@@ -37,6 +38,8 @@ function ProfileContent({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<FeedActivity | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const mounted = useRef(true);
 
   const load = useCallback(async () => {
@@ -51,6 +54,9 @@ function ProfileContent({ user }: { user: User }) {
     setStats(statsRes);
     setRecs(recsRes);
     setSaved(savedRes);
+    const counts: Record<string, number> = {};
+    for (const a of [...recsRes, ...savedRes]) counts[a.id] = a.commentCount;
+    setCommentCounts(counts);
     setLoading(false);
   }, [user.id]);
 
@@ -110,6 +116,14 @@ function ProfileContent({ user }: { user: User }) {
           await load();
         },
       },
+    ]);
+  };
+
+  const openItemMenu = (activity: FeedActivity) => {
+    Alert.alert(activity.placeName, undefined, [
+      { text: 'Bearbeiten', onPress: () => setEditing(activity) },
+      { text: 'Löschen', style: 'destructive', onPress: () => confirmDelete(activity) },
+      { text: 'Abbrechen', style: 'cancel' },
     ]);
   };
 
@@ -226,40 +240,56 @@ function ProfileContent({ user }: { user: User }) {
             </Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <ActivityCard
-            id={item.id}
-            placeName={item.placeName}
-            latitude={item.latitude}
-            longitude={item.longitude}
-            isMustSee={item.isMustSee}
-            description={item.description}
-            categories={item.categories}
-            timestamp={item.timestamp}
-            friend={tab === 'saved' ? item.friend : undefined}
-            imageUrls={item.imageUrls}
-            bottomLeftActions={
-              tab === 'recs' ? (
-                <>
+        renderItem={({ item }) => {
+          const commentCount = commentCounts[item.id] ?? item.commentCount;
+          return (
+            <ActivityCard
+              id={item.id}
+              placeName={item.placeName}
+              latitude={item.latitude}
+              longitude={item.longitude}
+              isMustSee={item.isMustSee}
+              description={item.description}
+              categories={item.categories}
+              timestamp={item.timestamp}
+              friend={tab === 'saved' ? item.friend : undefined}
+              onPressFriend={tab === 'saved' ? (id) => router.push(`/profile/${id}`) : undefined}
+              imageUrls={item.imageUrls}
+              headerAction={
+                tab === 'recs' ? (
                   <Pressable
-                    onPress={() => setEditing(item)}
-                    className="flex-row items-center gap-1.5 p-1"
-                    hitSlop={6}
+                    onPress={() => openItemMenu(item)}
+                    accessibilityLabel="Optionen"
+                    hitSlop={8}
+                    className="h-7 w-7 items-center justify-center rounded-full"
                   >
-                    <Pencil size={18} color="#64748b" />
+                    <MoreVertical size={18} color="#94a3b8" />
                   </Pressable>
-                  <Pressable
-                    onPress={() => confirmDelete(item)}
-                    className="flex-row items-center gap-1.5 p-1"
-                    hitSlop={6}
-                  >
-                    <Trash2 size={18} color="#f43f5e" />
-                  </Pressable>
-                </>
-              ) : undefined
-            }
-          />
-        )}
+                ) : undefined
+              }
+              bottomLeftActions={
+                <Pressable
+                  onPress={() => setActiveId((prev) => (prev === item.id ? null : item.id))}
+                  className="flex-row items-center gap-1.5 p-1"
+                  hitSlop={6}
+                >
+                  <MessageCircle size={18} color="#64748b" />
+                  {commentCount > 0 ? (
+                    <Text className="text-[11px] font-semibold text-slate-500">{commentCount}</Text>
+                  ) : null}
+                </Pressable>
+              }
+            >
+              {activeId === item.id ? (
+                <CommentsThread
+                  activityId={item.id}
+                  currentUserId={user.id}
+                  onCountChange={(n) => setCommentCounts((prev) => ({ ...prev, [item.id]: n }))}
+                />
+              ) : null}
+            </ActivityCard>
+          );
+        }}
       />
 
       <EditRecommendationSheet

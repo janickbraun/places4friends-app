@@ -17,6 +17,7 @@ type Props = {
   onPressFriend?: (friendId: string) => void;
   imageUrls?: string[];
   bottomLeftActions?: ReactNode;
+  headerAction?: ReactNode;
   children?: ReactNode;
 };
 
@@ -33,6 +34,7 @@ export default function ActivityCard({
   onPressFriend,
   imageUrls = [],
   bottomLeftActions,
+  headerAction,
   children,
 }: Props) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -67,6 +69,7 @@ export default function ActivityCard({
           {timestamp ? (
             <Text className="text-[10px] font-medium text-slate-400">{timestamp}</Text>
           ) : null}
+          {headerAction}
         </View>
       </View>
 
