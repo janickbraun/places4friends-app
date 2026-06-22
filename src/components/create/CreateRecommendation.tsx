@@ -122,7 +122,8 @@ export default function CreateRecommendation({ user }: { user: User }) {
     }
   };
 
-  // Tapping a labelled place (POI) on the map prefills its name directly.
+  // Android only: tapping a labelled place (POI) on Google Maps prefills its
+  // name. Apple Maps does not emit onPoiClick, so iOS taps fall back to onPress.
   const handlePoiClick = async (e: PoiClickEvent) => {
     const { coordinate, name } = e.nativeEvent;
     setPlaceName(name ?? '');

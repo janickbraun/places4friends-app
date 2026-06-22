@@ -21,7 +21,6 @@ type EdgePlaceResult = {
 
 type MapboxFeature = {
   id?: string;
-  bbox?: number[];
   properties?: {
     mapbox_id?: string;
     name?: string;
@@ -29,7 +28,6 @@ type MapboxFeature = {
     full_address?: string;
     address?: string;
     place_formatted?: string;
-    bbox?: number[];
   };
   geometry?: { coordinates?: number[] };
 };
@@ -114,84 +112,30 @@ async function searchPlacesViaMapbox(
   }
 }
 
-/** Max distance from a tapped point to a POI's anchor to treat the tap as "on" it. */
-const POI_MATCH_RADIUS_M = 150;
-
-function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number): number {
-  const R = 6371000;
-  const dLat = ((bLat - aLat) * Math.PI) / 180;
-  const dLng = ((bLng - aLng) * Math.PI) / 180;
-  const la1 = (aLat * Math.PI) / 180;
-  const la2 = (bLat * Math.PI) / 180;
-  const x =
-    Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(x));
-}
-
-/** True when the point sits inside the feature's bounding box (covers area POIs like parks). */
-function withinBbox(lat: number, lng: number, bbox?: number[]): boolean {
-  if (!bbox || bbox.length < 4) return false;
-  const [minLng, minLat, maxLng, maxLat] = bbox;
-  return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
-}
-
-async function reverseFeature(
-  latitude: number,
-  longitude: number,
-  types?: string,
-): Promise<MapboxFeature | null> {
-  const url = new URL(`${SEARCHBOX}/reverse`);
-  url.searchParams.set('longitude', String(longitude));
-  url.searchParams.set('latitude', String(latitude));
-  url.searchParams.set('access_token', MAPBOX_TOKEN!);
-  url.searchParams.set('language', 'de');
-  url.searchParams.set('limit', '1');
-  if (types) url.searchParams.set('types', types);
-  try {
-    const res = await fetch(url.toString());
-    if (!res.ok) return null;
-    const data = (await res.json()) as { features?: MapboxFeature[] };
-    return (data.features ?? [])[0] ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Reverse geocode tapped coordinates to prefill the place name/address. Prefers
- * the name of a nearby POI (so tapping a labelled place like "Englischer Garten"
- * fills its name) — matched by bounding box for areas or proximity for points —
- * and falls back to the nearest address for the address field.
- */
+/** Reverse geocode tapped coordinates to prefill the place name/address. */
 export async function reverseGeocode(
   latitude: number,
   longitude: number,
 ): Promise<{ name: string; address: string } | null> {
   if (!MAPBOX_TOKEN) return null;
-
-  const [poi, general] = await Promise.all([
-    reverseFeature(latitude, longitude, 'poi'),
-    reverseFeature(latitude, longitude),
-  ]);
-  if (!poi && !general) return null;
-
-  let name = '';
-  if (poi) {
-    const coords = poi.geometry?.coordinates ?? [];
-    const bbox = poi.bbox ?? poi.properties?.bbox;
-    const onPoi =
-      withinBbox(latitude, longitude, bbox) ||
-      (coords.length === 2 &&
-        distanceMeters(latitude, longitude, coords[1]!, coords[0]!) <= POI_MATCH_RADIUS_M);
-    if (onPoi) name = poi.properties?.name ?? '';
+  const url = new URL(`${SEARCHBOX}/reverse`);
+  url.searchParams.set('longitude', String(longitude));
+  url.searchParams.set('latitude', String(latitude));
+  url.searchParams.set('access_token', MAPBOX_TOKEN);
+  url.searchParams.set('language', 'de');
+  url.searchParams.set('limit', '1');
+  try {
+    const res = await fetch(url.toString());
+    if (!res.ok) return null;
+    const data = (await res.json()) as { features?: MapboxFeature[] };
+    const feature = (data.features ?? [])[0];
+    if (!feature) return null;
+    return {
+      name: feature.properties?.name ?? '',
+      address:
+        feature.properties?.full_address ?? feature.properties?.place_formatted ?? '',
+    };
+  } catch {
+    return null;
   }
-
-  const address =
-    general?.properties?.full_address ??
-    general?.properties?.place_formatted ??
-    poi?.properties?.full_address ??
-    poi?.properties?.place_formatted ??
-    '';
-
-  return { name, address };
 }
