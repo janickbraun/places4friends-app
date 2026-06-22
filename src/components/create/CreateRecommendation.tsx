@@ -30,6 +30,7 @@ import { DEFAULT_REGION } from '@/lib/map';
 import { PLACE_CATEGORIES } from '@/lib/categories';
 import { reverseGeocode, searchPlaces, type PlaceSuggestion } from '@/lib/places';
 import { createRecommendation, uploadActivityImages } from '@/lib/createRecommendation';
+import { MapLayerControl, type MapLayer } from '@/components/map/MapLayerControl';
 
 type Coord = { latitude: number; longitude: number };
 const MAX_IMAGES = 3;
@@ -43,6 +44,7 @@ export default function CreateRecommendation({ user }: { user: User }) {
   const [region] = useState<Region>(DEFAULT_REGION);
   const [pin, setPin] = useState<Coord | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [mapLayer, setMapLayer] = useState<MapLayer>('standard');
 
   // Search
   const [query, setQuery] = useState('');
@@ -215,6 +217,7 @@ export default function CreateRecommendation({ user }: { user: User }) {
       <MapView
         ref={mapRef}
         style={{ flex: 1 }}
+        mapType={mapLayer}
         initialRegion={region}
         onPress={handleMapPress}
         showsUserLocation
@@ -291,16 +294,19 @@ export default function CreateRecommendation({ user }: { user: User }) {
         </View>
       ) : null}
 
-      {/* Locate */}
+      {/* Layer + locate */}
       {!sheetOpen ? (
-        <Pressable
-          onPress={locate}
-          accessibilityLabel="Meinen Standort"
-          className="absolute right-4 h-10 w-10 items-center justify-center rounded-full bg-white"
-          style={{ bottom: insets.bottom + 84, boxShadow: '0px 2px 8px rgba(0,0,0,0.15)' }}
-        >
-          <Crosshair size={20} color="#226622" />
-        </Pressable>
+        <View className="absolute right-4 gap-2" style={{ bottom: insets.bottom + 84 }}>
+          <MapLayerControl value={mapLayer} onChange={setMapLayer} />
+          <Pressable
+            onPress={locate}
+            accessibilityLabel="Meinen Standort"
+            className="h-10 w-10 items-center justify-center rounded-full bg-white"
+            style={{ boxShadow: '0px 2px 8px rgba(0,0,0,0.15)' }}
+          >
+            <Crosshair size={20} color="#226622" />
+          </Pressable>
+        </View>
       ) : null}
 
       {/* Bottom-sheet form */}

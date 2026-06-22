@@ -7,8 +7,6 @@ import * as Location from 'expo-location';
 import Supercluster from 'supercluster';
 import {
   Crosshair,
-  Minus,
-  Plus,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -34,6 +32,7 @@ import { supabase } from '@/lib/supabase';
 import { PlaceMapMarker } from '@/components/map/PlaceMarker';
 import { ClusterMarker } from '@/components/map/ClusterMarker';
 import { PlaceDetailSheet } from '@/components/map/PlaceDetailSheet';
+import { MapLayerControl, type MapLayer } from '@/components/map/MapLayerControl';
 import { Avatar } from '@/components/ui/Avatar';
 
 const REGION_KEY = 'p4f_map_region';
@@ -47,6 +46,7 @@ export default function MapCanvas() {
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
   const [details, setDetails] = useState<MapPlaceDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [mapLayer, setMapLayer] = useState<MapLayer>('standard');
 
   // Search + filters
   const [query, setQuery] = useState('');
@@ -185,19 +185,6 @@ export default function MapCanvas() {
     );
   };
 
-  const zoom = (factor: number) => {
-    const r = regionRef.current;
-    mapRef.current?.animateToRegion(
-      {
-        latitude: r.latitude,
-        longitude: r.longitude,
-        latitudeDelta: Math.max(0.0008, Math.min(120, r.latitudeDelta * factor)),
-        longitudeDelta: Math.max(0.0008, Math.min(120, r.longitudeDelta * factor)),
-      },
-      250,
-    );
-  };
-
   const onSelectSuggestion = (s: PlaceSuggestion) => {
     setShowSuggestions(false);
     setSuggestions([]);
@@ -215,6 +202,7 @@ export default function MapCanvas() {
       <MapView
         ref={mapRef}
         style={{ flex: 1 }}
+        mapType={mapLayer}
         initialRegion={DEFAULT_REGION}
         onRegionChangeComplete={onRegionChangeComplete}
         onPress={() => {
@@ -449,17 +437,9 @@ export default function MapCanvas() {
         ) : null}
       </View>
 
-      {/* Zoom + locate controls */}
+      {/* Layer + locate controls */}
       <View className="absolute right-4 gap-2" style={{ bottom: insets.bottom + 84 }}>
-        <View className="overflow-hidden rounded-full bg-white" style={{ boxShadow: '0px 2px 8px rgba(0,0,0,0.15)' }}>
-          <Pressable onPress={() => zoom(0.5)} className="h-10 w-10 items-center justify-center">
-            <Plus size={20} color="#334155" />
-          </Pressable>
-          <View className="h-px bg-slate-100" />
-          <Pressable onPress={() => zoom(2)} className="h-10 w-10 items-center justify-center">
-            <Minus size={20} color="#334155" />
-          </Pressable>
-        </View>
+        <MapLayerControl value={mapLayer} onChange={setMapLayer} />
         <Pressable
           onPress={locate}
           accessibilityLabel="Meinen Standort"
