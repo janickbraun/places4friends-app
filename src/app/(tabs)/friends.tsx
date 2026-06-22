@@ -12,8 +12,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
-import { Check, Clock, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native';
+import { Check, Clock, Copy, Link2, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Avatar } from '@/components/ui/Avatar';
@@ -74,6 +75,8 @@ function FriendsContent({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [creatingInvite, setCreatingInvite] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -142,19 +145,34 @@ function FriendsContent({ user }: { user: User }) {
     ]);
   };
 
-  const shareInvite = async () => {
+  const shareUrl = (url: string) =>
+    Share.share({
+      message: `Lass uns auf places4friends befreundet sein, um unsere Lieblingsorte auf einer gemeinsamen Karte zu sehen! ${url}`,
+      url,
+    });
+
+  // Create the invite link, reveal it (with copy/share), and open the share sheet instantly.
+  const createInvite = async () => {
+    if (creatingInvite) return;
     setCreatingInvite(true);
     try {
       const url = await createFriendInviteLink(user.id);
-      await Share.share({
-        message: `Lass uns auf places4friends befreundet sein, um unsere Lieblingsorte auf einer gemeinsamen Karte zu sehen! ${url}`,
-        url,
-      });
+      if (!mounted.current) return;
+      setInviteUrl(url);
+      setCopied(false);
+      await shareUrl(url);
     } catch {
       Alert.alert('Fehler', 'Einladungslink konnte nicht erstellt werden.');
     } finally {
-      setCreatingInvite(false);
+      if (mounted.current) setCreatingInvite(false);
     }
+  };
+
+  const copyInvite = async () => {
+    if (!inviteUrl) return;
+    await Clipboard.setStringAsync(inviteUrl);
+    setCopied(true);
+    setTimeout(() => mounted.current && setCopied(false), 1800);
   };
 
   const relationshipFor = (profileId: string) => {
@@ -229,20 +247,53 @@ function FriendsContent({ user }: { user: User }) {
                   Link teilen – wer ihn öffnet, ist sofort mit dir befreundet.
                 </Text>
               </View>
-              <Pressable
-                onPress={shareInvite}
-                disabled={creatingInvite}
-                className={`flex-row items-center justify-center gap-1.5 self-start rounded-xl bg-brand-green-700 px-4 py-2 ${
-                  creatingInvite ? 'opacity-60' : ''
-                }`}
-              >
-                {creatingInvite ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Share2 size={14} color="#ffffff" />
-                )}
-                <Text className="text-[11px] font-bold text-white">Einladungslink teilen</Text>
-              </Pressable>
+
+              {inviteUrl ? (
+                <>
+                  {/* Link box with copy button */}
+                  <View className="flex-row items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pl-3">
+                    <Text numberOfLines={1} className="flex-1 text-[11px] text-slate-600">
+                      {inviteUrl}
+                    </Text>
+                    <Pressable
+                      onPress={copyInvite}
+                      className="flex-row items-center gap-1 rounded-lg bg-brand-green-700 px-3 py-2"
+                    >
+                      {copied ? (
+                        <Check size={13} color="#ffffff" />
+                      ) : (
+                        <Copy size={13} color="#ffffff" />
+                      )}
+                      <Text className="text-[11px] font-bold text-white">
+                        {copied ? 'Kopiert' : 'Kopieren'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  {/* Share button */}
+                  <Pressable
+                    onPress={() => void shareUrl(inviteUrl)}
+                    className="flex-row items-center gap-1.5 self-start rounded-xl bg-white px-4 py-2"
+                  >
+                    <Share2 size={14} color="#475569" />
+                    <Text className="text-[11px] font-bold text-slate-600">Teilen</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <Pressable
+                  onPress={createInvite}
+                  disabled={creatingInvite}
+                  className={`flex-row items-center justify-center gap-1.5 self-start rounded-xl bg-brand-green-700 px-4 py-2 ${
+                    creatingInvite ? 'opacity-60' : ''
+                  }`}
+                >
+                  {creatingInvite ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Link2 size={14} color="#ffffff" />
+                  )}
+                  <Text className="text-[11px] font-bold text-white">Einladungslink erstellen</Text>
+                </Pressable>
+              )}
             </View>
 
             <Button label="Freunde suchen & hinzufügen" icon={UserPlus} onPress={() => setSearchOpen(true)} />

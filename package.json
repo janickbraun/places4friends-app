@@ -12,6 +12,7 @@
     "base64-arraybuffer": "^1.0.2",
     "expo": "~56.0.12",
     "expo-build-properties": "~56.0.19",
+    "expo-clipboard": "~56.0.4",
     "expo-constants": "~56.0.18",
     "expo-device": "~56.0.4",
     "expo-file-system": "~56.0.8",
