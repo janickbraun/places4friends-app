@@ -2,12 +2,11 @@ import { useRef, useState } from 'react';
 import { Dimensions, Modal, Pressable, Text, View } from 'react-native';
 import { Check, Layers } from 'lucide-react-native';
 
-export type MapLayer = 'standard' | 'satellite' | 'hybrid';
+export type MapLayer = 'standard' | 'hybrid';
 
 const OPTIONS: { value: MapLayer; label: string }[] = [
   { value: 'standard', label: 'Standard' },
-  { value: 'satellite', label: 'Satellit' },
-  { value: 'hybrid', label: 'Hybrid' },
+  { value: 'hybrid', label: 'Satellit' },
 ];
 
 const MENU_WIDTH = 170;
