@@ -91,7 +91,7 @@ function Feed({ user }: { user: User }) {
 
   const Header = (
     <View className="h-14 items-center justify-center border-b border-slate-100 bg-white">
-      <Text className="text-sm font-bold text-slate-900">Aktivitäten</Text>
+      <Text className="text-sm font-bold text-slate-900">Feed</Text>
     </View>
   );
 
@@ -200,7 +200,7 @@ function Feed({ user }: { user: User }) {
 
 export default function ActivitiesScreen() {
   return (
-    <AuthGate context="activities" headerTitle="Aktivitäten">
+    <AuthGate context="activities" headerTitle="Feed">
       {(user) => <Feed user={user} />}
     </AuthGate>
   );

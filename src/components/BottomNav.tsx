@@ -21,7 +21,7 @@ type TabConfig = { name: string; label: string; icon: LucideIcon };
 
 const TABS: TabConfig[] = [
   { name: 'index', label: 'Karte', icon: MapPin },
-  { name: 'activities', label: 'Aktivitäten', icon: Activity },
+  { name: 'activities', label: 'Feed', icon: Activity },
   { name: 'create', label: 'Empfehlen', icon: Plus },
   { name: 'friends', label: 'Freunde', icon: Users },
   { name: 'profile', label: 'Profil', icon: User },
@@ -201,6 +201,7 @@ export default function BottomNav({ state, navigation }: BottomNavProps) {
                 )}
               </View>
               <Text
+                numberOfLines={1}
                 className={`text-[10px] tracking-wide ${
                   isActive ? 'font-bold text-brand-green-600' : 'text-slate-400'
                 }`}

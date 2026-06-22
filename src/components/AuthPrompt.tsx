@@ -33,7 +33,7 @@ const MESSAGES: Record<AuthContext, { title: string; description: string; icon: 
     icon: MapPin,
   },
   activities: {
-    title: 'Aktivitäten',
+    title: 'Feed',
     description:
       'Melde dich an oder erstelle ein Konto, um die neuesten Aktivitäten und Empfehlungen deiner Freunde zu sehen.',
     icon: Activity,
