@@ -191,6 +191,8 @@ function PublicProfileContent({
   };
 
   const openFriendsModal = async () => {
+    // Only accepted friends may view this profile's friends list.
+    if (friendship?.status !== 'accepted') return;
     setFriendsModalOpen(true);
     setLoadingFriends(true);
     const { friends } = await fetchFriendships(profileId);
@@ -283,11 +285,17 @@ function PublicProfileContent({
             </Text>
           ) : null}
 
-          <Pressable onPress={openFriendsModal} className="mt-2" hitSlop={6}>
-            <Text className="text-[11px] font-semibold text-slate-500">
+          {accepted ? (
+            <Pressable onPress={openFriendsModal} className="mt-2" hitSlop={6}>
+              <Text className="text-[11px] font-semibold text-slate-500">
+                {friendsCount} {friendsCount === 1 ? 'Freund' : 'Freunde'}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text className="mt-2 text-[11px] font-semibold text-slate-500">
               {friendsCount} {friendsCount === 1 ? 'Freund' : 'Freunde'}
             </Text>
-          </Pressable>
+          )}
 
           {/* Action area */}
           <View className="mt-4 w-full max-w-sm">
