@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import Supercluster from 'supercluster';
@@ -18,6 +19,7 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
+  UserPlus,
   Users,
   X,
 } from 'lucide-react-native';
@@ -40,12 +42,12 @@ import {
 import { searchPlaces, type PlaceSuggestion } from '@/lib/places';
 import { fetchFriendships, type FriendProfile } from '@/lib/friends';
 import { PLACE_CATEGORIES } from '@/lib/categories';
-import { supabase } from '@/lib/supabase';
 import { PlaceMapMarker } from '@/components/map/PlaceMarker';
 import { ClusterMarker } from '@/components/map/ClusterMarker';
 import { PlaceDetailSheet } from '@/components/map/PlaceDetailSheet';
 import { MapLayerControl, type MapLayer } from '@/components/map/MapLayerControl';
 import { Avatar } from '@/components/ui/Avatar';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 const REGION_KEY = 'p4f_map_region';
 type PinProps = { cluster: false; pin: MapPin };
@@ -58,6 +60,9 @@ const COINCIDENT_SPAN = 0.0008;
 
 export default function MapCanvas() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const currentUserId = user?.id ?? null;
   const mapRef = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [pins, setPins] = useState<MapPin[]>([]);
@@ -76,7 +81,6 @@ export default function MapCanvas() {
   const [mustSee, setMustSee] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const regionRef = useRef(region);
   const filtersRef = useRef<MapPinFilters>({});
@@ -158,7 +162,7 @@ export default function MapCanvas() {
     return () => sub.remove();
   }, [resetToOverview]);
 
-  // Restore viewport + load friends (for the filter chips) on mount.
+  // Restore the saved viewport + load pins on mount.
   useEffect(() => {
     (async () => {
       try {
@@ -174,11 +178,23 @@ export default function MapCanvas() {
       }
       await loadPins();
     })();
-    void supabase.auth.getUser().then(({ data }) => {
-      setCurrentUserId(data.user?.id ?? null);
-      if (data.user) fetchFriendships(data.user.id).then((f) => setFriends(f.friends));
-    });
   }, [loadPins]);
+
+  // Load the friend filter chips for the signed-in user (cleared on logout).
+  useEffect(() => {
+    if (!user) {
+      setFriends([]);
+      setSelectedUserId(null);
+      return;
+    }
+    let mounted = true;
+    fetchFriendships(user.id).then((f) => {
+      if (mounted) setFriends(f.friends);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   // Re-fetch when filters change. Selecting a friend additionally zooms the map
   // to fit all of their recommendations (fetched globally, not just the current
@@ -525,8 +541,9 @@ export default function MapCanvas() {
           </View>
         ) : null}
 
-        {/* Friend filter chips */}
-        {friends.length > 0 ? (
+        {/* Friend filter chips — or an add-friends button when signed out / friendless */}
+        {!authLoading ? (
+          user && friends.length > 0 ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -571,21 +588,36 @@ export default function MapCanvas() {
               );
             })}
           </ScrollView>
+          ) : (
+            <View className="mt-2 flex-row">
+              <Pressable
+                onPress={() => router.push('/friends')}
+                accessibilityRole="button"
+                className="flex-row items-center gap-1.5 self-start rounded-full border border-slate-100 bg-white/95 px-3 py-1.5"
+                style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.03)' }}
+              >
+                <UserPlus size={14} color="#334155" />
+                <Text className="text-xs font-semibold text-slate-700">Freunde hinzufügen</Text>
+              </Pressable>
+            </View>
+          )
         ) : null}
       </View>
 
-      {/* Layer + locate controls */}
-      <View className="absolute right-4 gap-2" style={{ bottom: insets.bottom + 84 }}>
-        <MapLayerControl value={mapLayer} onChange={setMapLayer} />
-        <Pressable
-          onPress={locate}
-          accessibilityLabel="Meinen Standort"
-          className="h-10 w-10 items-center justify-center rounded-full bg-white"
-          style={{ boxShadow: '0px 2px 8px rgba(0,0,0,0.15)' }}
-        >
-          <Crosshair size={20} color="#226622" />
-        </Pressable>
-      </View>
+      {/* Layer + locate controls (signed-in only — a logged-out map has no pins) */}
+      {user ? (
+        <View className="absolute right-4 gap-2" style={{ bottom: insets.bottom + 84 }}>
+          <MapLayerControl value={mapLayer} onChange={setMapLayer} />
+          <Pressable
+            onPress={locate}
+            accessibilityLabel="Meinen Standort"
+            className="h-10 w-10 items-center justify-center rounded-full bg-white"
+            style={{ boxShadow: '0px 2px 8px rgba(0,0,0,0.15)' }}
+          >
+            <Crosshair size={20} color="#226622" />
+          </Pressable>
+        </View>
+      ) : null}
 
       <PlaceDetailSheet
         pin={selectedPin}
@@ -594,6 +626,40 @@ export default function MapCanvas() {
         currentUserId={currentUserId}
         onClose={() => setSelectedPin(null)}
       />
+
+      {/* Logged-out prompt: login / register (mirrors the web map's bottom card). */}
+      {!authLoading && !user ? (
+        <View
+          className="absolute left-4 right-4 gap-3 rounded-2xl bg-white/95 p-5"
+          style={{ bottom: insets.bottom + 76, boxShadow: '0px 12px 40px rgba(0,0,0,0.12)' }}
+        >
+          <View>
+            <Text className="text-sm font-bold text-slate-900">
+              Entdecke Orte mit deinen Freunden
+            </Text>
+            <Text className="mt-1 text-[11px] leading-relaxed text-slate-500">
+              Melde dich an oder registriere dich, um die Lieblingsorte deiner Freunde auf der
+              interaktiven Karte zu sehen.
+            </Text>
+          </View>
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={() => router.push('/login')}
+              accessibilityRole="button"
+              className="flex-1 items-center rounded-xl bg-brand-green-700 py-2.5"
+            >
+              <Text className="text-xs font-bold text-white">Anmelden</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/register')}
+              accessibilityRole="button"
+              className="flex-1 items-center rounded-xl border border-slate-200 bg-white py-2.5"
+            >
+              <Text className="text-xs font-bold text-slate-700">Registrieren</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
