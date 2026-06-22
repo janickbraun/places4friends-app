@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  DeviceEventEmitter,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,10 +24,15 @@ import {
 import {
   DEFAULT_REGION,
   expandBounds,
+  fetchOverviewPins,
   fetchPlaceDetails,
+  fetchUserPins,
   fetchViewportPins,
+  getZoomLevelForType,
+  MAP_RESET_ZOOM_EVENT,
   regionToBounds,
   regionToZoom,
+  zoomToDelta,
   type MapPin,
   type MapPinFilters,
   type MapPlaceDetails,
@@ -36,6 +49,12 @@ import { Avatar } from '@/components/ui/Avatar';
 
 const REGION_KEY = 'p4f_map_region';
 type PinProps = { cluster: false; pin: MapPin };
+
+// Street-level detail zoom (web ZOOM_DETAIL = 15), as a region delta.
+const DETAIL_DELTA = zoomToDelta(15);
+// Below this lat/lng span a cluster's pins are effectively stacked — fitting to
+// them would slam the camera to max zoom, so we fall back to a fixed zoom-in.
+const COINCIDENT_SPAN = 0.0008;
 
 export default function MapCanvas() {
   const insets = useSafeAreaInsets();
@@ -76,6 +95,69 @@ export default function MapCanvas() {
     setPins(await fetchViewportPins(bounds, filtersRef.current));
   }, []);
 
+  /**
+   * Animate the camera to contain a set of pins (web `fitMapToUnclusteredPlaces`).
+   * A single pin zooms straight to detail level; multiple pins fit their bounds
+   * with padding that clears the floating search bar/chips and the map controls.
+   */
+  const fitToPins = useCallback(
+    (pinsToFit: MapPin[]) => {
+      if (pinsToFit.length === 0) return;
+      if (pinsToFit.length === 1) {
+        const p = pinsToFit[0];
+        mapRef.current?.animateToRegion(
+          {
+            latitude: p.latitude,
+            longitude: p.longitude,
+            latitudeDelta: DETAIL_DELTA,
+            longitudeDelta: DETAIL_DELTA,
+          },
+          500,
+        );
+        return;
+      }
+      mapRef.current?.fitToCoordinates(
+        pinsToFit.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+        {
+          edgePadding: {
+            top: insets.top + 140,
+            right: 56,
+            bottom: insets.bottom + 110,
+            left: 56,
+          },
+          animated: true,
+        },
+      );
+    },
+    [insets.top, insets.bottom],
+  );
+
+  /**
+   * Clear search/selection and zoom back out to fit the whole (filtered) overview
+   * — the web's `reset-map-zoom` behavior, fired by re-tapping the active Karte tab.
+   */
+  const resetToOverview = useCallback(async () => {
+    setQuery('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setFilterOpen(false);
+    setSelectedPin(null);
+    const overview = await fetchOverviewPins(filtersRef.current);
+    setPins(overview);
+    if (overview.length === 0) {
+      mapRef.current?.animateToRegion(DEFAULT_REGION, 500);
+      return;
+    }
+    fitToPins(overview);
+  }, [fitToPins]);
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(MAP_RESET_ZOOM_EVENT, () => {
+      void resetToOverview();
+    });
+    return () => sub.remove();
+  }, [resetToOverview]);
+
   // Restore viewport + load friends (for the filter chips) on mount.
   useEffect(() => {
     (async () => {
@@ -98,10 +180,29 @@ export default function MapCanvas() {
     });
   }, [loadPins]);
 
-  // Re-fetch when filters change.
+  // Re-fetch when filters change. Selecting a friend additionally zooms the map
+  // to fit all of their recommendations (fetched globally, not just the current
+  // viewport) — matching the web's auto-fit on filter.
   useEffect(() => {
-    void loadPins();
-  }, [selectedUserId, mustSee, selectedCategories, loadPins]);
+    let cancelled = false;
+    void (async () => {
+      if (selectedUserId) {
+        const friendPins = await fetchUserPins(selectedUserId, {
+          mustSee,
+          categories: selectedCategories,
+        });
+        if (cancelled) return;
+        setPins(friendPins);
+        setSelectedPin(null);
+        fitToPins(friendPins);
+      } else {
+        await loadPins();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedUserId, mustSee, selectedCategories, loadPins, fitToPins]);
 
   // Debounced place search.
   useEffect(() => {
@@ -150,6 +251,18 @@ export default function MapCanvas() {
   }, [supercluster, region]);
 
   const handlePinPress = useCallback(async (pin: MapPin) => {
+    // Center the pin in the upper area and zoom in to detail (keeping the current
+    // zoom if already closer) so it sits clearly above the bottom detail sheet.
+    const targetDelta = Math.min(regionRef.current.latitudeDelta, DETAIL_DELTA);
+    mapRef.current?.animateToRegion(
+      {
+        latitude: pin.latitude - targetDelta * 0.25,
+        longitude: pin.longitude,
+        latitudeDelta: targetDelta,
+        longitudeDelta: targetDelta,
+      },
+      450,
+    );
     setSelectedPin(pin);
     setDetails(null);
     setDetailsLoading(true);
@@ -159,14 +272,41 @@ export default function MapCanvas() {
 
   const handleClusterPress = useCallback(
     (clusterId: number, lng: number, lat: number) => {
-      const zoom = supercluster.getClusterExpansionZoom(clusterId);
-      const delta = 360 / Math.pow(2, zoom);
-      mapRef.current?.animateToRegion(
-        { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta },
-        350,
+      // Fit the camera to the cluster's actual members (web `handleClusterExpand`)
+      // rather than a fixed expansion delta, so the group spreads out edge-to-edge.
+      const leaves = supercluster.getLeaves(clusterId, Infinity);
+      const coords = leaves.map((l) => ({
+        latitude: l.geometry.coordinates[1],
+        longitude: l.geometry.coordinates[0],
+      }));
+      const lats = coords.map((c) => c.latitude);
+      const lngs = coords.map((c) => c.longitude);
+      const span = Math.max(
+        Math.max(...lats) - Math.min(...lats),
+        Math.max(...lngs) - Math.min(...lngs),
       );
+
+      if (coords.length < 2 || span < COINCIDENT_SPAN) {
+        const zoom = Math.min(supercluster.getClusterExpansionZoom(clusterId), 17);
+        const delta = zoomToDelta(zoom);
+        mapRef.current?.animateToRegion(
+          { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta },
+          350,
+        );
+        return;
+      }
+
+      mapRef.current?.fitToCoordinates(coords, {
+        edgePadding: {
+          top: insets.top + 140,
+          right: 56,
+          bottom: insets.bottom + 110,
+          left: 56,
+        },
+        animated: true,
+      });
     },
-    [supercluster],
+    [supercluster, insets.top, insets.bottom],
   );
 
   const locate = async () => {
@@ -189,8 +329,11 @@ export default function MapCanvas() {
     setSuggestions([]);
     setQuery(s.name);
     if (s.latitude != null && s.longitude != null) {
+      // Zoom depth depends on the result's granularity (city vs. POI etc.) —
+      // mirrors the web's getZoomLevelForType.
+      const delta = zoomToDelta(getZoomLevelForType(s.type));
       mapRef.current?.animateToRegion(
-        { latitude: s.latitude, longitude: s.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 },
+        { latitude: s.latitude, longitude: s.longitude, latitudeDelta: delta, longitudeDelta: delta },
         600,
       );
     }

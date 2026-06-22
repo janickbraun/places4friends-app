@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { DeviceEventEmitter, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Activity, MapPin, Plus, User, Users, type LucideIcon } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import { MAP_RESET_ZOOM_EVENT } from '@/lib/map';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 const ACTIVE = '#226622'; // brand-green-600
@@ -179,7 +180,11 @@ export default function BottomNav({ state, navigation }: BottomNavProps) {
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
               onPress={() => {
-                if (isActive) return;
+                if (isActive) {
+                  // Re-tapping the active Karte tab resets the map to the overview.
+                  if (tab.name === 'index') DeviceEventEmitter.emit(MAP_RESET_ZOOM_EVENT);
+                  return;
+                }
                 navigation.navigate(tab.name);
               }}
               className="flex-1 items-center justify-center gap-1 rounded-xl py-2"

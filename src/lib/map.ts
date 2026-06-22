@@ -4,6 +4,11 @@ import { getAvatarUrl, getInitials, getUserColor } from '@/lib/format';
 
 export const MAP_PIN_LIMIT = 400;
 
+/** Emitted (via DeviceEventEmitter) when the Karte tab is tapped while already
+ *  active — tells the map to clear search/selection and zoom back out to the
+ *  overview, mirroring the web's `reset-map-zoom` window event. */
+export const MAP_RESET_ZOOM_EVENT = 'p4f:reset-map-zoom';
+
 // Center of Germany — the web app's fallback viewport.
 export const DEFAULT_REGION: Region = {
   latitude: 51.1657,
@@ -58,6 +63,33 @@ export function regionToZoom(region: Region): number {
   return Math.round(Math.log2(360 / Math.max(region.longitudeDelta, 1e-6)));
 }
 
+/** Web-tile zoom level -> a react-native-maps region delta (inverse of regionToZoom). */
+export function zoomToDelta(zoom: number): number {
+  return 360 / 2 ** zoom;
+}
+
+/**
+ * Target zoom for a search result, by granularity — mirrors the web
+ * `getZoomLevelForType` so picking a city vs. a POI zooms appropriately.
+ */
+export function getZoomLevelForType(type?: string): number {
+  switch (type) {
+    case 'country':
+      return 4.5;
+    case 'region':
+      return 7.5;
+    case 'city':
+      return 11.5;
+    case 'neighborhood':
+      return 14.5;
+    case 'address':
+      return 16;
+    case 'poi':
+    default:
+      return 17;
+  }
+}
+
 /** Expands bounds so panning does not immediately drop edge pins (web parity). */
 export function expandBounds(bounds: MapBounds, paddingRatio = 0.25): MapBounds {
   const latSpan = bounds.north - bounds.south;
@@ -102,6 +134,41 @@ async function loadProfiles(userIds: string[]): Promise<Map<string, ProfileInfo>
   return map;
 }
 
+interface ActivityRow {
+  id: string;
+  user_id: string;
+  place_name: string;
+  latitude: number | null;
+  longitude: number | null;
+  is_superlike: boolean;
+}
+
+/** Hydrates raw activity rows into MapPins, joining in each author's profile. */
+async function rowsToPins(rows: ActivityRow[]): Promise<MapPin[]> {
+  const valid = rows.filter(
+    (r): r is ActivityRow & { latitude: number; longitude: number } =>
+      r.latitude !== null && r.longitude !== null,
+  );
+  const userIds = Array.from(new Set(valid.map((r) => r.user_id)));
+  const profiles = await loadProfiles(userIds);
+
+  return valid.map((r) => {
+    const profile = profiles.get(r.user_id);
+    return {
+      id: r.id,
+      userId: r.user_id,
+      userName: profile?.name ?? 'Unbekannt',
+      userInitials: profile?.initials ?? '?',
+      userColor: profile?.color ?? '#64748b',
+      userAvatarUrl: profile?.avatarUrl ?? null,
+      name: r.place_name,
+      latitude: r.latitude,
+      longitude: r.longitude,
+      isMustSee: r.is_superlike,
+    };
+  });
+}
+
 /**
  * Fetch place pins inside the given bounds. RLS already scopes `activities` to
  * the current user + accepted friends, so no explicit network filter is needed.
@@ -128,29 +195,39 @@ export async function fetchViewportPins(
 
   const { data: rows, error } = await query.limit(MAP_PIN_LIMIT);
   if (error || !rows) return [];
+  return rowsToPins(rows);
+}
 
-  const userIds = Array.from(new Set(rows.map((r) => r.user_id)));
-  const profiles = await loadProfiles(userIds);
+/**
+ * Fetch pins for the whole overview (no viewport constraint), honoring the
+ * active filters. Used to fit the map to everything relevant — when selecting a
+ * friend chip, or when resetting the map zoom — mirroring the web, whose auto-fit
+ * works off the full overview set rather than only what's currently on screen.
+ */
+export async function fetchOverviewPins(filters: MapPinFilters = {}): Promise<MapPin[]> {
+  let query = supabase
+    .from('activities')
+    .select('id, user_id, place_name, latitude, longitude, is_superlike')
+    .not('latitude', 'is', null)
+    .not('longitude', 'is', null);
 
-  return rows
-    .filter((r): r is typeof r & { latitude: number; longitude: number } =>
-      r.latitude !== null && r.longitude !== null,
-    )
-    .map((r) => {
-      const profile = profiles.get(r.user_id);
-      return {
-        id: r.id,
-        userId: r.user_id,
-        userName: profile?.name ?? 'Unbekannt',
-        userInitials: profile?.initials ?? '?',
-        userColor: profile?.color ?? '#64748b',
-        userAvatarUrl: profile?.avatarUrl ?? null,
-        name: r.place_name,
-        latitude: r.latitude,
-        longitude: r.longitude,
-        isMustSee: r.is_superlike,
-      };
-    });
+  if (filters.userId) query = query.eq('user_id', filters.userId);
+  if (filters.mustSee) query = query.eq('is_superlike', true);
+  if (filters.categories && filters.categories.length > 0) {
+    query = query.overlaps('categories', filters.categories);
+  }
+
+  const { data: rows, error } = await query.limit(MAP_PIN_LIMIT);
+  if (error || !rows) return [];
+  return rowsToPins(rows);
+}
+
+/** All of a single user's pins (overview, unbounded) — the friend-chip auto-fit. */
+export async function fetchUserPins(
+  userId: string,
+  filters: Omit<MapPinFilters, 'userId'> = {},
+): Promise<MapPin[]> {
+  return fetchOverviewPins({ ...filters, userId });
 }
 
 export async function fetchPlaceDetails(id: string): Promise<MapPlaceDetails | null> {

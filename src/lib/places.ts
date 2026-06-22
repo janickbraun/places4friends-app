@@ -3,12 +3,16 @@ import { supabase } from '@/lib/supabase';
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
 const SEARCHBOX = 'https://api.mapbox.com/search/searchbox/v1';
 
+/** Granularity of a search result — drives how far the map zooms in (web parity). */
+export type PlaceType = 'country' | 'region' | 'city' | 'neighborhood' | 'address' | 'poi';
+
 export interface PlaceSuggestion {
   id: string;
   name: string;
   address: string;
   latitude: number | null;
   longitude: number | null;
+  type: PlaceType;
 }
 
 type EdgePlaceResult = {
@@ -17,6 +21,7 @@ type EdgePlaceResult = {
   address: string | null;
   latitude: number | null;
   longitude: number | null;
+  type?: string;
 };
 
 type MapboxFeature = {
@@ -28,9 +33,48 @@ type MapboxFeature = {
     full_address?: string;
     address?: string;
     place_formatted?: string;
+    feature_type?: string;
   };
   geometry?: { coordinates?: number[] };
 };
+
+/** Maps Mapbox `feature_type` to our coarse zoom buckets (mirrors the Edge Function). */
+function mapboxFeatureType(featureType?: string): PlaceType {
+  switch (featureType) {
+    case 'country':
+      return 'country';
+    case 'region':
+    case 'district':
+      return 'region';
+    case 'place':
+    case 'locality':
+    case 'city':
+      return 'city';
+    case 'neighborhood':
+      return 'neighborhood';
+    case 'address':
+    case 'postcode':
+    case 'street':
+      return 'address';
+    default:
+      return 'poi';
+  }
+}
+
+/** Normalizes any string into a known PlaceType, defaulting to the tightest zoom. */
+function normalizeType(type?: string): PlaceType {
+  switch (type) {
+    case 'country':
+    case 'region':
+    case 'city':
+    case 'neighborhood':
+    case 'address':
+    case 'poi':
+      return type;
+    default:
+      return 'poi';
+  }
+}
 
 function toSuggestion(f: MapboxFeature): PlaceSuggestion {
   const coords = f.geometry?.coordinates ?? [];
@@ -44,6 +88,7 @@ function toSuggestion(f: MapboxFeature): PlaceSuggestion {
       '',
     latitude: coords[1] ?? null,
     longitude: coords[0] ?? null,
+    type: mapboxFeatureType(f.properties?.feature_type),
   };
 }
 
@@ -79,6 +124,7 @@ export async function searchPlaces(
         address: r.address ?? '',
         latitude: r.latitude,
         longitude: r.longitude,
+        type: normalizeType(r.type),
       }));
     }
   } catch {
