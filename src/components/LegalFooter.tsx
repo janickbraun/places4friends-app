@@ -1,11 +1,17 @@
 import { Pressable, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
+import { SITE_URL } from '@/lib/site';
 
-/** Centered legal links — mirrors the web LegalFooter. */
+const PATHS: Record<string, string> = {
+  impressum: '/impressum',
+  datenschutz: '/datenschutz',
+  agb: '/agb',
+};
+
+/** Centered legal links — open the live pages in the external browser. */
 export default function LegalFooter() {
-  const router = useRouter();
   const Item = ({ label, doc }: { label: string; doc: string }) => (
-    <Pressable onPress={() => router.push(`/legal/${doc}`)} hitSlop={6}>
+    <Pressable onPress={() => Linking.openURL(`${SITE_URL}${PATHS[doc]}`)} hitSlop={6}>
       <Text className="text-[11px] text-slate-400">{label}</Text>
     </Pressable>
   );
