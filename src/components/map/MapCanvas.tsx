@@ -400,8 +400,8 @@ export default function MapCanvas() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            className="mt-2"
-            contentContainerStyle={{ gap: 8 }}
+            className="mt-2 -mx-4"
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
             keyboardShouldPersistTaps="handled"
           >
             <Pressable
