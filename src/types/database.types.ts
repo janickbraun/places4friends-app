@@ -336,6 +336,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_friend_invite: { Args: { p_token: string }; Returns: Json }
       delete_own_user: { Args: Record<PropertyKey, never>; Returns: undefined }
       redeem_friend_invite_link: { Args: { p_token: string }; Returns: Json }
       validate_friend_invite_link: { Args: { p_token: string }; Returns: Json }
