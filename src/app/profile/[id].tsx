@@ -291,11 +291,7 @@ function PublicProfileContent({
                 {friendsCount} {friendsCount === 1 ? 'Freund' : 'Freunde'}
               </Text>
             </Pressable>
-          ) : (
-            <Text className="mt-2 text-[11px] font-semibold text-slate-500">
-              {friendsCount} {friendsCount === 1 ? 'Freund' : 'Freunde'}
-            </Text>
-          )}
+          ) : null}
 
           {/* Action area */}
           <View className="mt-4 w-full max-w-sm">
