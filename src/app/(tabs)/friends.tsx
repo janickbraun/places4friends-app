@@ -20,6 +20,7 @@ import VerificationBanner from '@/components/VerificationBanner';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
+import { PersonRowSkeletonList } from '@/components/skeletons/PersonRowSkeleton';
 import { supabase } from '@/lib/supabase';
 import {
   acceptFriendRequest,
@@ -237,8 +238,8 @@ function FriendsContent({ user }: { user: User }) {
       <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
         {Header}
         {Tabs}
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#226622" />
+        <View className="p-4">
+          <PersonRowSkeletonList count={6} />
         </View>
       </SafeAreaView>
     );
@@ -466,9 +467,7 @@ function FriendsContent({ user }: { user: User }) {
             keyboardShouldPersistTaps="handled"
           >
             {searching ? (
-              <View className="py-10">
-                <ActivityIndicator color="#94a3b8" />
-              </View>
+              <PersonRowSkeletonList count={4} />
             ) : results.length > 0 ? (
               <View className="rounded-2xl border border-slate-100 bg-white px-3">
                 {results.map((p) => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Pencil, Trash2 } from 'lucide-react-native';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/lib/activities';
 import { formatTimestamp } from '@/lib/format';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
+import { CommentSkeletonList } from '@/components/skeletons/CommentSkeleton';
 
 type Props = {
   activityId: string;
@@ -109,10 +110,7 @@ export function CommentsThread({ activityId, currentUserId, onCountChange }: Pro
       ) : null}
 
       {loading ? (
-        <View className="mt-3 flex-row items-center gap-2">
-          <ActivityIndicator size="small" color="#94a3b8" />
-          <Text className="text-[11px] text-slate-400">Kommentare werden geladen...</Text>
-        </View>
+        <CommentSkeletonList count={3} />
       ) : comments.length === 0 ? (
         <Text className="mt-2 text-[11px] text-slate-500">Noch keine Kommentare.</Text>
       ) : (

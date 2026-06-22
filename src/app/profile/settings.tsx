@@ -30,6 +30,7 @@ import {
 import type { LucideIcon } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import LegalFooter from '@/components/LegalFooter';
+import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton';
 import { supabase } from '@/lib/supabase';
 import {
   changePassword,
@@ -396,9 +397,7 @@ function SettingsContent({ user }: { user: User }) {
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
         {Header}
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#226622" />
-        </View>
+        <SettingsSkeleton />
       </SafeAreaView>
     );
   }

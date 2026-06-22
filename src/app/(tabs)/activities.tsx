@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
@@ -8,6 +8,7 @@ import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
 import VerificationBanner from '@/components/VerificationBanner';
 import { CommentsThread } from '@/components/activities/CommentsThread';
+import { ActivityCardSkeletonList } from '@/components/skeletons/ActivityCardSkeleton';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import {
@@ -99,9 +100,9 @@ function Feed({ user }: { user: User }) {
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
         {Header}
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#226622" />
-        </View>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+          <ActivityCardSkeletonList count={4} />
+        </ScrollView>
       </SafeAreaView>
     );
   }

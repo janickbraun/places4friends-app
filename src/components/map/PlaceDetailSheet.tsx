@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -14,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { Navigation, Sparkles, X } from 'lucide-react-native';
 import type { MapPin, MapPlaceDetails } from '@/lib/map';
 import { CommentsThread } from '@/components/activities/CommentsThread';
+import { PlaceDetailSkeleton } from '@/components/skeletons/PlaceDetailSkeleton';
 
 type Props = {
   pin: MapPin | null;
@@ -92,9 +92,7 @@ export function PlaceDetailSheet({ pin, details, loading, currentUserId, onClose
                 </View>
 
                 {loading ? (
-                  <View className="items-center py-8">
-                    <ActivityIndicator color="#226622" />
-                  </View>
+                  <PlaceDetailSkeleton />
                 ) : (
                   <ScrollView
                     style={{ maxHeight: 420 }}

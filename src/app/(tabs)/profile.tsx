@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -10,6 +10,8 @@ import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
+import { ProfileHeaderSkeleton } from '@/components/skeletons/ProfileHeaderSkeleton';
+import { ActivityCardSkeletonList } from '@/components/skeletons/ActivityCardSkeleton';
 import VerificationBanner from '@/components/VerificationBanner';
 import LegalFooter from '@/components/LegalFooter';
 import EditRecommendationSheet from '@/components/EditRecommendationSheet';
@@ -179,9 +181,12 @@ function ProfileContent({ user }: { user: User }) {
         <View className="h-14 flex-row items-center justify-center border-b border-slate-100 bg-white">
           <Text className="text-sm font-bold text-slate-900">Profil</Text>
         </View>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#226622" />
-        </View>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}>
+          <ProfileHeaderSkeleton avatarSize={96} />
+          <View className="mt-8">
+            <ActivityCardSkeletonList count={3} />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }

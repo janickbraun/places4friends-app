@@ -25,6 +25,8 @@ import {
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
 import { CommentsThread } from '@/components/activities/CommentsThread';
+import { ProfileHeaderSkeleton } from '@/components/skeletons/ProfileHeaderSkeleton';
+import { ActivityCardSkeleton } from '@/components/skeletons/ActivityCardSkeleton';
 import { addToWishlist, removeFromWishlist } from '@/lib/activities';
 import {
   fetchPublicProfile,
@@ -218,9 +220,13 @@ function PublicProfileContent({
     return (
       <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
         {Header}
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#226622" />
-        </View>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+          <ProfileHeaderSkeleton avatarSize={88} />
+          <View className="mt-8 gap-3.5">
+            <ActivityCardSkeleton />
+            <ActivityCardSkeleton />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }

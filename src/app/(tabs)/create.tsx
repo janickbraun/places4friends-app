@@ -1,8 +1,9 @@
 import { Suspense, lazy } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import { isExpoGo } from '@/lib/runtime';
+import { MapLoadingSkeleton } from '@/components/skeletons/MapLoadingSkeleton';
 
 // Lazy so react-native-maps (native) is never imported in Expo Go.
 const CreateRecommendation = lazy(() => import('@/components/create/CreateRecommendation'));
@@ -25,13 +26,7 @@ export default function CreateScreen() {
             </Text>
           </View>
         ) : (
-          <Suspense
-            fallback={
-              <View className="flex-1 items-center justify-center bg-slate-50">
-                <ActivityIndicator color="#226622" />
-              </View>
-            }
-          >
+          <Suspense fallback={<MapLoadingSkeleton />}>
             <CreateRecommendation user={user} />
           </Suspense>
         )
