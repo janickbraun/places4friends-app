@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import type { User } from '@supabase/supabase-js';
 import { LogOut, MapPin, Pencil, Settings, Trash2 } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
@@ -19,6 +20,7 @@ import {
   fetchProfileStats,
   fetchUserActivities,
   fetchWishlistActivities,
+  uploadAvatar,
   type ProfileInfo,
   type ProfileStats,
 } from '@/lib/profile';
@@ -34,6 +36,7 @@ function ProfileContent({ user }: { user: User }) {
   const [tab, setTab] = useState<Tab>('recs');
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<FeedActivity | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const mounted = useRef(true);
 
   const load = useCallback(async () => {
@@ -66,6 +69,36 @@ function ProfileContent({ user }: { user: User }) {
     ]);
   };
 
+  const pickAvatar = async () => {
+    if (uploadingAvatar) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Zugriff erforderlich',
+        'Bitte erlaube den Zugriff auf deine Fotos, um ein Profilbild auszuwählen.',
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.92,
+      base64: true,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    setUploadingAvatar(true);
+    try {
+      await uploadAvatar(user.id, result.assets[0]);
+      await load();
+    } catch {
+      Alert.alert('Fehler', 'Das Profilbild konnte nicht aktualisiert werden.');
+    } finally {
+      if (mounted.current) setUploadingAvatar(false);
+    }
+  };
+
   const confirmDelete = (activity: FeedActivity) => {
     Alert.alert('Empfehlung löschen?', `"${activity.placeName}" wirklich löschen?`, [
       { text: 'Abbrechen', style: 'cancel' },
@@ -87,16 +120,26 @@ function ProfileContent({ user }: { user: User }) {
     <View>
       {/* Identity */}
       <View className="items-center pt-6">
-        <View
-          className="h-24 w-24 items-center justify-center overflow-hidden rounded-full"
-          style={{ backgroundColor: getUserColor(user.id) }}
-        >
-          {info?.avatarUrl ? (
-            <Image source={{ uri: info.avatarUrl }} style={{ width: 96, height: 96 }} contentFit="cover" />
-          ) : (
-            <Text className="text-3xl font-bold text-white">{getInitials(name)}</Text>
-          )}
-        </View>
+        <Pressable onPress={pickAvatar} disabled={uploadingAvatar} accessibilityLabel="Profilbild ändern">
+          <View
+            className="h-24 w-24 items-center justify-center overflow-hidden rounded-full"
+            style={{ backgroundColor: getUserColor(user.id) }}
+          >
+            {info?.avatarUrl ? (
+              <Image source={{ uri: info.avatarUrl }} style={{ width: 96, height: 96 }} contentFit="cover" />
+            ) : (
+              <Text className="text-3xl font-bold text-white">{getInitials(name)}</Text>
+            )}
+            {uploadingAvatar ? (
+              <View className="absolute inset-0 items-center justify-center bg-black/40">
+                <ActivityIndicator color="#ffffff" />
+              </View>
+            ) : null}
+          </View>
+          <View className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full border-2 border-slate-50 bg-slate-900">
+            <Pencil size={15} color="#ffffff" />
+          </View>
+        </Pressable>
         <Text className="mt-4 text-2xl font-bold text-slate-900">{name}</Text>
         {info?.username ? (
           <Text className="mt-1 text-base font-semibold text-brand-green-700">@{info.username}</Text>

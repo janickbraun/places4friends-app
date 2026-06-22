@@ -1,3 +1,5 @@
+import { decode } from 'base64-arraybuffer';
+import type { ImagePickerAsset } from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
 import {
   buildActivityCountMap,
@@ -7,6 +9,26 @@ import {
   getUserColor,
 } from '@/lib/format';
 import type { FeedActivity, FeedFriend } from '@/lib/activities';
+
+/**
+ * Upload a cropped avatar to the public `avatars` bucket and point the user's
+ * profile at it. Mirrors the web app: a fixed `${userId}/avatar.jpg` path
+ * (overwritten on each change) with the path stored in `profiles.avatar_url`.
+ */
+export async function uploadAvatar(userId: string, asset: ImagePickerAsset): Promise<void> {
+  if (!asset.base64) throw new Error('Kein Bild ausgewählt.');
+  const path = `${userId}/avatar.jpg`;
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(path, decode(asset.base64), { contentType: 'image/jpeg', upsert: true });
+  if (uploadError) throw uploadError;
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ avatar_url: path })
+    .eq('id', userId);
+  if (updateError) throw updateError;
+}
 
 export interface ProfileInfo {
   id: string;
