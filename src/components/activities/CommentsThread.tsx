@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Pencil, Trash2 } from 'lucide-react-native';
 import {
   addComment,
   deleteComment,
@@ -10,6 +9,7 @@ import {
   type ActivityComment,
 } from '@/lib/activities';
 import { formatTimestamp } from '@/lib/format';
+import { EditDeleteMenu } from '@/components/ui/EditDeleteMenu';
 
 type Props = {
   activityId: string;
@@ -146,19 +146,15 @@ export function CommentsThread({ activityId, currentUserId, onCountChange }: Pro
                       {formatTimestamp(comment.createdAt)}
                     </Text>
                     {isOwn && !isEditing ? (
-                      <View className="ml-auto flex-row items-center gap-2">
-                        <Pressable
-                          onPress={() => {
+                      <View className="ml-auto">
+                        <EditDeleteMenu
+                          iconSize={15}
+                          onEdit={() => {
                             setEditingId(comment.id);
                             setEditingInput(comment.content);
                           }}
-                          hitSlop={8}
-                        >
-                          <Pencil size={13} color="#94a3b8" />
-                        </Pressable>
-                        <Pressable onPress={() => confirmDelete(comment.id)} hitSlop={8}>
-                          <Trash2 size={13} color="#f43f5e" />
-                        </Pressable>
+                          onDelete={() => confirmDelete(comment.id)}
+                        />
                       </View>
                     ) : null}
                   </View>

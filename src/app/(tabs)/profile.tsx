@@ -5,10 +5,11 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import type { User } from '@supabase/supabase-js';
-import { LogOut, MapPin, MessageCircle, MoreVertical, Pencil, Settings } from 'lucide-react-native';
+import { LogOut, MapPin, MessageCircle, Pencil, Settings } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
 import { CommentsThread } from '@/components/activities/CommentsThread';
+import { EditDeleteMenu } from '@/components/ui/EditDeleteMenu';
 import VerificationBanner from '@/components/VerificationBanner';
 import LegalFooter from '@/components/LegalFooter';
 import EditRecommendationSheet from '@/components/EditRecommendationSheet';
@@ -116,14 +117,6 @@ function ProfileContent({ user }: { user: User }) {
           await load();
         },
       },
-    ]);
-  };
-
-  const openItemMenu = (activity: FeedActivity) => {
-    Alert.alert(activity.placeName, undefined, [
-      { text: 'Bearbeiten', onPress: () => setEditing(activity) },
-      { text: 'Löschen', style: 'destructive', onPress: () => confirmDelete(activity) },
-      { text: 'Abbrechen', style: 'cancel' },
     ]);
   };
 
@@ -257,14 +250,10 @@ function ProfileContent({ user }: { user: User }) {
               imageUrls={item.imageUrls}
               headerAction={
                 tab === 'recs' ? (
-                  <Pressable
-                    onPress={() => openItemMenu(item)}
-                    accessibilityLabel="Optionen"
-                    hitSlop={8}
-                    className="h-7 w-7 items-center justify-center rounded-full"
-                  >
-                    <MoreVertical size={18} color="#94a3b8" />
-                  </Pressable>
+                  <EditDeleteMenu
+                    onEdit={() => setEditing(item)}
+                    onDelete={() => confirmDelete(item)}
+                  />
                 ) : undefined
               }
               bottomLeftActions={
