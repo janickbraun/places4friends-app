@@ -25,15 +25,6 @@ import {
 
 type Tab = 'recs' | 'saved';
 
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <View className="items-center">
-      <Text className="text-lg font-bold text-slate-900">{value}</Text>
-      <Text className="text-[11px] text-slate-500">{label}</Text>
-    </View>
-  );
-}
-
 function ProfileContent({ user }: { user: User }) {
   const router = useRouter();
   const [info, setInfo] = useState<ProfileInfo | null>(null);
@@ -97,27 +88,24 @@ function ProfileContent({ user }: { user: User }) {
       {/* Identity */}
       <View className="items-center pt-6">
         <View
-          className="h-20 w-20 items-center justify-center overflow-hidden rounded-full"
+          className="h-24 w-24 items-center justify-center overflow-hidden rounded-full"
           style={{ backgroundColor: getUserColor(user.id) }}
         >
           {info?.avatarUrl ? (
-            <Image source={{ uri: info.avatarUrl }} style={{ width: 80, height: 80 }} contentFit="cover" />
+            <Image source={{ uri: info.avatarUrl }} style={{ width: 96, height: 96 }} contentFit="cover" />
           ) : (
-            <Text className="text-2xl font-bold text-white">{getInitials(name)}</Text>
+            <Text className="text-3xl font-bold text-white">{getInitials(name)}</Text>
           )}
         </View>
-        <Text className="mt-3 text-lg font-bold text-slate-900">{name}</Text>
+        <Text className="mt-4 text-2xl font-bold text-slate-900">{name}</Text>
         {info?.username ? (
-          <Text className="text-sm text-slate-500">@{info.username}</Text>
+          <Text className="mt-1 text-base font-semibold text-brand-green-700">@{info.username}</Text>
         ) : null}
-        {user.email ? <Text className="mt-0.5 text-xs text-slate-400">{user.email}</Text> : null}
-      </View>
-
-      {/* Stats */}
-      <View className="mt-6 flex-row justify-around rounded-2xl border border-slate-100 bg-white py-4">
-        <Stat value={stats.recommendations} label="Empfehlungen" />
-        <Stat value={stats.friends} label="Freunde" />
-        <Stat value={stats.saves} label="Gespeichert" />
+        <Pressable onPress={() => router.push('/friends')} hitSlop={6} className="mt-2">
+          <Text className="text-sm font-medium text-slate-500">
+            {stats.friends} {stats.friends === 1 ? 'Freund' : 'Freunde'}
+          </Text>
+        </Pressable>
       </View>
 
       {/* Tabs */}
