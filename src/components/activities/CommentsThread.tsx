@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Pencil, Trash2 } from 'lucide-react-native';
@@ -27,12 +27,20 @@ export function CommentsThread({ activityId, currentUserId, onCountChange }: Pro
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingInput, setEditingInput] = useState('');
 
+  // Keep the latest onCountChange in a ref so `load` (and its effect) only
+  // re-run when the activity changes — parents pass a new inline callback every
+  // render, which would otherwise cause an infinite fetch/flicker loop.
+  const onCountChangeRef = useRef(onCountChange);
+  useEffect(() => {
+    onCountChangeRef.current = onCountChange;
+  }, [onCountChange]);
+
   const load = useCallback(async () => {
     const list = await fetchComments(activityId);
     setComments(list);
-    onCountChange?.(list.length);
+    onCountChangeRef.current?.(list.length);
     setLoading(false);
-  }, [activityId, onCountChange]);
+  }, [activityId]);
 
   useEffect(() => {
     setLoading(true);
