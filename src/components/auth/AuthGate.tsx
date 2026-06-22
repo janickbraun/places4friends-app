@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { ActivityIndicator, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, View } from 'react-native';
 import AuthPrompt, { type AuthContext } from '@/components/AuthPrompt';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 
 interface AuthGateProps {
   context: AuthContext;
@@ -20,12 +20,10 @@ export default function AuthGate({ context, headerTitle, children }: AuthGatePro
   const { user, loading } = useAuth();
 
   const shell = (content: ReactNode) => (
-    <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
-      <View className="h-14 items-center justify-center border-b border-slate-100 bg-white px-4">
-        <Text className="text-lg font-bold text-slate-900">{headerTitle}</Text>
-      </View>
+    <View className="flex-1 bg-slate-50">
+      <ScreenHeader title={headerTitle} titleClassName="text-lg font-bold text-slate-900" />
       {content}
-    </SafeAreaView>
+    </View>
   );
 
   if (loading) {

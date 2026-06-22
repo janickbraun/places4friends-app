@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { Bookmark, Compass, MessageCircle, Users } from 'lucide-react-native';
@@ -10,6 +9,7 @@ import VerificationBanner from '@/components/VerificationBanner';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { ActivityCardSkeletonList } from '@/components/skeletons/ActivityCardSkeleton';
 import { Button } from '@/components/ui/Button';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { supabase } from '@/lib/supabase';
 import {
   addToWishlist,
@@ -90,27 +90,23 @@ function Feed({ user }: { user: User }) {
     }
   };
 
-  const Header = (
-    <View className="h-14 items-center justify-center border-b border-slate-100 bg-white">
-      <Text className="text-sm font-bold text-slate-900">Feed</Text>
-    </View>
-  );
+  const Header = <ScreenHeader title="Feed" />;
 
   if (loading) {
     return (
-      <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+      <View className="flex-1 bg-slate-50">
         {Header}
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
           <ActivityCardSkeletonList count={4} />
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
-      <VerificationBanner />
+    <View className="flex-1 bg-slate-50">
       {Header}
+      <VerificationBanner />
       <FlatList
         data={activities}
         keyExtractor={(item) => item.id}
@@ -195,7 +191,7 @@ function Feed({ user }: { user: User }) {
           );
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

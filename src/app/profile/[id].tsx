@@ -7,7 +7,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { User } from '@supabase/supabase-js';
@@ -27,6 +26,7 @@ import ActivityCard from '@/components/ActivityCard';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { ProfileHeaderSkeleton } from '@/components/skeletons/ProfileHeaderSkeleton';
 import { ActivityCardSkeleton } from '@/components/skeletons/ActivityCardSkeleton';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { addToWishlist, removeFromWishlist } from '@/lib/activities';
 import {
   fetchPublicProfile,
@@ -203,22 +203,24 @@ function PublicProfileContent({
   };
 
   const Header = (
-    <View className="h-14 flex-row items-center justify-between border-b border-slate-100 bg-white px-4">
-      <Pressable
-        onPress={goBack}
-        hitSlop={8}
-        className="h-8 w-8 items-center justify-center rounded-lg"
-      >
-        <ArrowLeft size={20} color="#64748b" />
-      </Pressable>
-      <Text className="text-lg font-bold text-slate-900">Profil</Text>
-      <View className="w-8" />
-    </View>
+    <ScreenHeader
+      title="Profil"
+      titleClassName="text-lg font-bold text-slate-900"
+      left={
+        <Pressable
+          onPress={goBack}
+          hitSlop={8}
+          className="h-8 w-8 items-center justify-center rounded-lg"
+        >
+          <ArrowLeft size={20} color="#64748b" />
+        </Pressable>
+      }
+    />
   );
 
   if (loading || profileId === currentUserId) {
     return (
-      <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+      <View className="flex-1 bg-slate-50">
         {Header}
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
           <ProfileHeaderSkeleton avatarSize={88} />
@@ -227,13 +229,13 @@ function PublicProfileContent({
             <ActivityCardSkeleton />
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (notFound || !data) {
     return (
-      <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+      <View className="flex-1 bg-slate-50">
         {Header}
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-sm font-semibold text-slate-900">Profil nicht gefunden</Text>
@@ -241,7 +243,7 @@ function PublicProfileContent({
             Dieses Profil existiert nicht oder ist nicht mehr verfügbar.
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -259,7 +261,7 @@ function PublicProfileContent({
           : null;
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50">
       {Header}
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
@@ -530,7 +532,7 @@ function PublicProfileContent({
           </Pressable>
         </Pressable>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 

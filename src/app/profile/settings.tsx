@@ -9,7 +9,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import type { User } from '@supabase/supabase-js';
 import {
@@ -30,6 +29,7 @@ import {
 import type { LucideIcon } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import LegalFooter from '@/components/LegalFooter';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton';
 import { supabase } from '@/lib/supabase';
 import {
@@ -384,21 +384,22 @@ function SettingsContent({ user }: { user: User }) {
   };
 
   const Header = (
-    <View className="h-14 flex-row items-center justify-between border-b border-slate-100 bg-white px-4">
-      <Pressable onPress={() => router.back()} hitSlop={8} className="h-8 w-8 items-center justify-center rounded-lg">
-        <ArrowLeft size={20} color="#64748b" />
-      </Pressable>
-      <Text className="text-sm font-bold text-slate-900">Einstellungen</Text>
-      <View className="w-8" />
-    </View>
+    <ScreenHeader
+      title="Einstellungen"
+      left={
+        <Pressable onPress={() => router.back()} hitSlop={8} className="h-8 w-8 items-center justify-center rounded-lg">
+          <ArrowLeft size={20} color="#64748b" />
+        </Pressable>
+      }
+    />
   );
 
   if (loading) {
     return (
-      <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+      <View className="flex-1 bg-slate-50">
         {Header}
         <SettingsSkeleton />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -409,7 +410,7 @@ function SettingsContent({ user }: { user: User }) {
   const notifChanged = notifications !== baseNotifications;
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50">
       {Header}
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 24 }}>
         {/* Account & Sicherheit */}
@@ -649,7 +650,7 @@ function SettingsContent({ user }: { user: User }) {
           </View>
         </View>
       </SheetModal>
-    </SafeAreaView>
+    </View>
   );
 }
 

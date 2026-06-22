@@ -20,6 +20,7 @@ import VerificationBanner from '@/components/VerificationBanner';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { PersonRowSkeletonList } from '@/components/skeletons/PersonRowSkeleton';
 import { supabase } from '@/lib/supabase';
 import {
@@ -199,11 +200,7 @@ function FriendsContent({ user }: { user: User }) {
     return { id: rel.id, status: rel.status, isSender: rel.senderId === user.id };
   };
 
-  const Header = (
-    <View className="h-14 items-center justify-center border-b border-slate-100 bg-white">
-      <Text className="text-sm font-bold text-slate-900">Freunde &amp; Anfragen</Text>
-    </View>
-  );
+  const Header = <ScreenHeader title="Freunde & Anfragen" />;
 
   const Tabs = (
     <View className="flex-row border-b border-slate-100 bg-white">
@@ -235,20 +232,20 @@ function FriendsContent({ user }: { user: User }) {
 
   if (loading) {
     return (
-      <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+      <View className="flex-1 bg-slate-50">
         {Header}
         {Tabs}
         <View className="p-4">
           <PersonRowSkeletonList count={6} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
-      <VerificationBanner />
+    <View className="flex-1 bg-slate-50">
       {Header}
+      <VerificationBanner />
       {Tabs}
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}>
         {tab === 'friends' ? (
@@ -537,7 +534,7 @@ function FriendsContent({ user }: { user: User }) {
           </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 

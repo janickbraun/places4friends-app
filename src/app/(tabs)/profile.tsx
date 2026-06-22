@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,6 +9,7 @@ import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ProfileHeaderSkeleton } from '@/components/skeletons/ProfileHeaderSkeleton';
 import { ActivityCardSkeletonList } from '@/components/skeletons/ActivityCardSkeleton';
 import VerificationBanner from '@/components/VerificationBanner';
@@ -175,36 +175,40 @@ function ProfileContent({ user }: { user: User }) {
     </View>
   );
 
+  const Header = (
+    <ScreenHeader
+      title="Profil"
+      right={
+        <Pressable
+          onPress={() => router.push('/profile/settings')}
+          accessibilityLabel="Einstellungen"
+          className="h-9 w-9 items-center justify-center rounded-full"
+          hitSlop={6}
+        >
+          <Settings size={18} color="#64748b" />
+        </Pressable>
+      }
+    />
+  );
+
   if (loading) {
     return (
-      <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
-        <View className="h-14 flex-row items-center justify-center border-b border-slate-100 bg-white">
-          <Text className="text-sm font-bold text-slate-900">Profil</Text>
-        </View>
+      <View className="flex-1 bg-slate-50">
+        {Header}
         <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}>
           <ProfileHeaderSkeleton avatarSize={96} />
           <View className="mt-8">
             <ActivityCardSkeletonList count={3} />
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-slate-50">
+    <View className="flex-1 bg-slate-50">
+      {Header}
       <VerificationBanner />
-      <View className="h-14 flex-row items-center justify-center border-b border-slate-100 bg-white">
-        <Text className="text-sm font-bold text-slate-900">Profil</Text>
-        <Pressable
-          onPress={() => router.push('/profile/settings')}
-          accessibilityLabel="Einstellungen"
-          className="absolute right-3 h-9 w-9 items-center justify-center rounded-full"
-          hitSlop={6}
-        >
-          <Settings size={18} color="#64748b" />
-        </Pressable>
-      </View>
 
       <FlatList
         data={data}
@@ -286,7 +290,7 @@ function ProfileContent({ user }: { user: User }) {
           void load();
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
