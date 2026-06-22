@@ -19,6 +19,7 @@ import AuthGate from '@/components/auth/AuthGate';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { PopoverMenu } from '@/components/ui/PopoverMenu';
 import { supabase } from '@/lib/supabase';
 import {
   acceptFriendRequest,
@@ -314,13 +315,16 @@ function FriendsContent({ user }: { user: User }) {
                       busy[f.id] ? (
                         <ActivityIndicator size="small" color="#94a3b8" />
                       ) : (
-                        <Pressable
-                          onPress={() => confirmRemove(f)}
-                          hitSlop={6}
-                          className="h-8 w-8 items-center justify-center rounded-lg"
-                        >
-                          <UserMinus size={18} color="#f43f5e" />
-                        </Pressable>
+                        <PopoverMenu
+                          items={[
+                            {
+                              label: 'Freund entfernen',
+                              icon: UserMinus,
+                              destructive: true,
+                              onPress: () => confirmRemove(f),
+                            },
+                          ]}
+                        />
                       )
                     }
                   />

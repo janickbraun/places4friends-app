@@ -5,11 +5,11 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import type { User } from '@supabase/supabase-js';
-import { LogOut, MapPin, MessageCircle, Pencil, Settings } from 'lucide-react-native';
+import { LogOut, MapPin, MessageCircle, Pencil, Settings, Trash2 } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
 import { CommentsThread } from '@/components/activities/CommentsThread';
-import { EditDeleteMenu } from '@/components/ui/EditDeleteMenu';
+import { PopoverMenu } from '@/components/ui/PopoverMenu';
 import VerificationBanner from '@/components/VerificationBanner';
 import LegalFooter from '@/components/LegalFooter';
 import EditRecommendationSheet from '@/components/EditRecommendationSheet';
@@ -250,9 +250,16 @@ function ProfileContent({ user }: { user: User }) {
               imageUrls={item.imageUrls}
               headerAction={
                 tab === 'recs' ? (
-                  <EditDeleteMenu
-                    onEdit={() => setEditing(item)}
-                    onDelete={() => confirmDelete(item)}
+                  <PopoverMenu
+                    items={[
+                      { label: 'Bearbeiten', icon: Pencil, onPress: () => setEditing(item) },
+                      {
+                        label: 'Löschen',
+                        icon: Trash2,
+                        destructive: true,
+                        onPress: () => confirmDelete(item),
+                      },
+                    ]}
                   />
                 ) : undefined
               }

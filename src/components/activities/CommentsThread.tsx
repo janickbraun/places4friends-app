@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
+import { Pencil, Trash2 } from 'lucide-react-native';
 import {
   addComment,
   deleteComment,
@@ -9,7 +10,7 @@ import {
   type ActivityComment,
 } from '@/lib/activities';
 import { formatTimestamp } from '@/lib/format';
-import { EditDeleteMenu } from '@/components/ui/EditDeleteMenu';
+import { PopoverMenu } from '@/components/ui/PopoverMenu';
 
 type Props = {
   activityId: string;
@@ -147,13 +148,24 @@ export function CommentsThread({ activityId, currentUserId, onCountChange }: Pro
                     </Text>
                     {isOwn && !isEditing ? (
                       <View className="ml-auto">
-                        <EditDeleteMenu
+                        <PopoverMenu
                           iconSize={15}
-                          onEdit={() => {
-                            setEditingId(comment.id);
-                            setEditingInput(comment.content);
-                          }}
-                          onDelete={() => confirmDelete(comment.id)}
+                          items={[
+                            {
+                              label: 'Bearbeiten',
+                              icon: Pencil,
+                              onPress: () => {
+                                setEditingId(comment.id);
+                                setEditingInput(comment.content);
+                              },
+                            },
+                            {
+                              label: 'Löschen',
+                              icon: Trash2,
+                              destructive: true,
+                              onPress: () => confirmDelete(comment.id),
+                            },
+                          ]}
                         />
                       </View>
                     ) : null}
