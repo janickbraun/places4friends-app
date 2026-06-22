@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
@@ -138,6 +138,18 @@ function FriendsContent({ user }: { user: User }) {
     withBusy(f.id, () => acceptFriendRequest(f.friendshipId));
   const onDelete = (f: FriendProfile) => withBusy(f.id, () => deleteFriendship(f.friendshipId));
   const onSend = (id: string) => withBusy(id, () => sendFriendRequest(user.id, id));
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery('');
+    setResults([]);
+  };
+
+  const openProfile = (id: string) => {
+    closeSearch();
+    // Let the modal dismiss before navigating to avoid a transition race.
+    setTimeout(() => router.push(`/profile/${id}`), 0);
+  };
 
   const confirmRemove = (f: FriendProfile) => {
     Alert.alert('Freund entfernen?', `${f.fullName ?? 'Diesen Freund'} wirklich entfernen?`, [
@@ -426,18 +438,12 @@ function FriendsContent({ user }: { user: User }) {
       </ScrollView>
 
       {/* Search modal */}
-      <Modal visible={searchOpen} animationType="slide" onRequestClose={() => setSearchOpen(false)}>
-        <SafeAreaView edges={['top']} className="flex-1 bg-white">
+      <Modal visible={searchOpen} animationType="slide" onRequestClose={closeSearch}>
+        <SafeAreaProvider>
+          <SafeAreaView edges={['top']} className="flex-1 bg-white">
           <View className="h-14 flex-row items-center justify-between border-b border-slate-100 px-4">
             <Text className="text-sm font-bold text-slate-900">Freunde suchen</Text>
-            <Pressable
-              onPress={() => {
-                setSearchOpen(false);
-                setQuery('');
-                setResults([]);
-              }}
-              hitSlop={8}
-            >
+            <Pressable onPress={closeSearch} hitSlop={8}>
               <X size={20} color="#64748b" />
             </Pressable>
           </View>
@@ -507,6 +513,7 @@ function FriendsContent({ user }: { user: User }) {
                   return (
                     <PersonRow
                       key={p.id}
+                      onPress={() => openProfile(p.id)}
                       name={name}
                       username={p.username}
                       avatarUrl={p.avatarUrl}
@@ -528,7 +535,8 @@ function FriendsContent({ user }: { user: User }) {
               </View>
             )}
           </ScrollView>
-        </SafeAreaView>
+          </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
     </SafeAreaView>
   );
