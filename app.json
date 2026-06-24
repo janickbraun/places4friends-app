@@ -21,7 +21,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.janickbraun.places4friends"
+      "package": "com.janickbraun.places4friends",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "output": "static",
@@ -30,6 +35,14 @@
     "plugins": [
       "expo-router",
       "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Wir verwenden deine Fotos, um sie zu deinen Ortsempfehlungen hinzuzufügen.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {
