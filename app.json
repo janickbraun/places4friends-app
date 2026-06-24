@@ -11,7 +11,7 @@
     "primaryColor": "#226622",
     "ios": {
       "icon": "./assets/images/icon.png",
-      "bundleIdentifier": "com.janick.places4friends-mobile-app"
+      "bundleIdentifier": "com.janickbraun.places4friends"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +21,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.janick.places4friendsmobileapp"
+      "package": "com.janickbraun.places4friends"
     },
     "web": {
       "output": "static",
@@ -61,6 +61,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7aa37549-374d-41ea-834c-ee7e36ede032"
+      }
+    },
+    "owner": "janick"
   }
 }

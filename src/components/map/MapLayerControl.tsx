@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { Dimensions, Modal, Pressable, Text, View } from 'react-native';
 import { Check, Layers } from 'lucide-react-native';
+import type { MapLayer } from '@/lib/mapLayer';
 
-export type MapLayer = 'standard' | 'hybrid';
+export type { MapLayer };
 
 const OPTIONS: { value: MapLayer; label: string }[] = [
   { value: 'standard', label: 'Standard' },
@@ -31,8 +32,9 @@ export function MapLayerControl({
     triggerRef.current?.measureInWindow((x, y, width, height) => {
       const screen = Dimensions.get('window');
       const left = Math.max(8, Math.min(x + width - MENU_WIDTH, screen.width - MENU_WIDTH - 8));
-      // Anchor above the button (it sits near the bottom of the map).
-      const above = y - MENU_HEIGHT - 8;
+      // Anchor above the button (it sits near the bottom of the map), overlapping
+      // its top slightly so the popover sits a little lower / closer to the button.
+      const above = y - MENU_HEIGHT + 8;
       const top = above < 24 ? y + height + 8 : above;
       setPos({ top, left });
       setOpen(true);

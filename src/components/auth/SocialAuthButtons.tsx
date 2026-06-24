@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Apple } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { isExpoGo } from '@/lib/runtime';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
+import { AppleIcon } from '@/components/ui/AppleIcon';
 
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
@@ -14,6 +14,8 @@ type Props = {
   onError: (message: string) => void;
   /** Return false to block sign-in (e.g. consent not yet accepted on register). */
   guard?: () => boolean;
+  /** Show the "oder" divider above the buttons (default true; off in the register chooser). */
+  showDivider?: boolean;
 };
 
 /**
@@ -22,7 +24,7 @@ type Props = {
  * is loaded lazily so the screen still renders in Expo Go). Apple is a
  * placeholder for now (real expo-apple-authentication flow to follow).
  */
-export function SocialAuthButtons({ mode, onError, guard }: Props) {
+export function SocialAuthButtons({ mode, onError, guard, showDivider = true }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState<null | 'google' | 'apple'>(null);
   const verb = mode === 'register' ? 'registrieren' : 'anmelden';
@@ -77,13 +79,37 @@ export function SocialAuthButtons({ mode, onError, guard }: Props) {
 
   return (
     <View className="gap-3">
-      <View className="my-2 flex-row items-center">
-        <View className="h-px flex-1 bg-slate-200" />
-        <Text className="mx-2.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          oder
-        </Text>
-        <View className="h-px flex-1 bg-slate-200" />
-      </View>
+      {showDivider ? (
+        <View className="my-2 flex-row items-center">
+          <View className="h-px flex-1 bg-slate-200" />
+          <Text className="mx-2.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            oder
+          </Text>
+          <View className="h-px flex-1 bg-slate-200" />
+        </View>
+      ) : null}
+
+      {/* Sign in with Apple is iOS-only (App Store-required there) and, per Apple's
+          guidelines, sits above the other providers; hidden on Android. */}
+      {Platform.OS === 'ios' ? (
+        <Pressable
+          onPress={handleApple}
+          disabled={loading !== null}
+          accessibilityRole="button"
+          className={`w-full flex-row items-center justify-center gap-2.5 rounded-xl bg-black py-3.5 ${
+            loading !== null ? 'opacity-60' : ''
+          }`}
+        >
+          {loading === 'apple' ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <>
+              <AppleIcon size={18} />
+              <Text className="text-sm font-semibold text-white">Mit Apple {verb}</Text>
+            </>
+          )}
+        </Pressable>
+      ) : null}
 
       <Pressable
         onPress={handleGoogle}
@@ -103,21 +129,6 @@ export function SocialAuthButtons({ mode, onError, guard }: Props) {
           </>
         )}
       </Pressable>
-
-      {/* Sign in with Apple is iOS-only (and App Store-required there); hidden on Android. */}
-      {Platform.OS === 'ios' ? (
-        <Pressable
-          onPress={handleApple}
-          disabled={loading !== null}
-          accessibilityRole="button"
-          className={`w-full flex-row items-center justify-center gap-2.5 rounded-xl bg-black py-3.5 ${
-            loading !== null ? 'opacity-60' : ''
-          }`}
-        >
-          <Apple size={18} color="#ffffff" fill="#ffffff" />
-          <Text className="text-sm font-semibold text-white">Mit Apple {verb}</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }

@@ -24,6 +24,8 @@ type Props = {
   friend?: FeedFriend;
   onPressFriend?: (friendId: string) => void;
   imageUrls?: string[];
+  /** Cached static map snapshot (Geoapify/OSM, stored in Supabase). Preferred over the live Mapbox tile. */
+  mapSnapshotUrl?: string | null;
   bottomLeftActions?: ReactNode;
   headerAction?: ReactNode;
   children?: ReactNode;
@@ -41,16 +43,29 @@ export default function ActivityCard({
   friend,
   onPressFriend,
   imageUrls = [],
+  mapSnapshotUrl,
   bottomLeftActions,
   headerAction,
   children,
 }: Props) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const hasCoords = latitude != null && longitude != null;
-  const hasMap = hasCoords && !!MAPBOX_TOKEN;
+  const hasLiveMap = hasCoords && !!MAPBOX_TOKEN;
+  const hasMap = !!mapSnapshotUrl || hasLiveMap;
   const tileCount = (hasMap ? 1 : 0) + imageUrls.length;
   const single = tileCount === 1;
-  const mapUrl = hasMap ? staticMapUrl(latitude!, longitude!, single ? '800x300' : '600x600') : null;
+  // Prefer the cached snapshot (legal to store); fall back to a live Mapbox tile
+  // for older posts created before snapshotting.
+  const mapUrl =
+    mapSnapshotUrl ??
+    (hasLiveMap ? staticMapUrl(latitude!, longitude!, single ? '800x300' : '600x600') : null);
+  // Required map attribution, shown as a caption under the tile (we crop the
+  // provider's baked-in credit, so we must reproduce it ourselves).
+  const mapAttribution = mapSnapshotUrl
+    ? '© OpenStreetMap · © OpenMapTiles · Powered by Geoapify'
+    : hasLiveMap
+      ? '© Mapbox · © OpenStreetMap'
+      : null;
 
   const openMaps = () => {
     openDirections({ name: placeName, latitude, longitude });
@@ -83,6 +98,7 @@ export default function ActivityCard({
 
       {/* Media: map snapshot (default first tile) + uploaded images */}
       {tileCount > 0 ? (
+        <>
         <View className="flex-row flex-wrap gap-2 pt-3">
           {mapUrl ? (
             <Pressable
@@ -118,6 +134,10 @@ export default function ActivityCard({
             </Pressable>
           ))}
         </View>
+        {mapUrl && mapAttribution ? (
+          <Text className="pt-1 text-right text-[9px] text-slate-400">{mapAttribution}</Text>
+        ) : null}
+        </>
       ) : null}
 
       {/* Description */}

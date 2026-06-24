@@ -443,6 +443,7 @@ function PublicProfileContent({
                       categories={place.categories}
                       timestamp={place.timestamp}
                       imageUrls={place.imageUrls}
+                      mapSnapshotUrl={place.mapSnapshotUrl}
                       headerAction={<ReportMenu activityId={place.id} reporterId={currentUserId} />}
                       bottomLeftActions={
                         <>

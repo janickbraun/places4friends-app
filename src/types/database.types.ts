@@ -24,6 +24,7 @@ export type Database = {
           is_superlike: boolean
           latitude: number | null
           longitude: number | null
+          map_snapshot_url: string | null
           place_address: string | null
           place_id: string | null
           place_name: string
@@ -38,6 +39,7 @@ export type Database = {
           is_superlike?: boolean
           latitude?: number | null
           longitude?: number | null
+          map_snapshot_url?: string | null
           place_address?: string | null
           place_id?: string | null
           place_name: string
@@ -52,6 +54,7 @@ export type Database = {
           is_superlike?: boolean
           latitude?: number | null
           longitude?: number | null
+          map_snapshot_url?: string | null
           place_address?: string | null
           place_id?: string | null
           place_name?: string

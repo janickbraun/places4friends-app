@@ -45,7 +45,8 @@ import { PLACE_CATEGORIES } from '@/lib/categories';
 import { PlaceMapMarker } from '@/components/map/PlaceMarker';
 import { ClusterMapMarker } from '@/components/map/ClusterMarker';
 import { PlaceDetailSheet } from '@/components/map/PlaceDetailSheet';
-import { MapLayerControl, type MapLayer } from '@/components/map/MapLayerControl';
+import { MapLayerControl } from '@/components/map/MapLayerControl';
+import { useMapLayer } from '@/lib/mapLayer';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuth } from '@/components/auth/AuthProvider';
 
@@ -69,7 +70,7 @@ export default function MapCanvas() {
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
   const [details, setDetails] = useState<MapPlaceDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  const [mapLayer, setMapLayer] = useState<MapLayer>('standard');
+  const [mapLayer, setMapLayer] = useMapLayer();
 
   // Search + filters
   const [query, setQuery] = useState('');
@@ -361,6 +362,8 @@ export default function MapCanvas() {
         ref={mapRef}
         style={{ flex: 1 }}
         mapType={mapLayer}
+        // Standard map always renders light, regardless of the device's dark mode.
+        userInterfaceStyle={mapLayer === 'standard' ? 'light' : undefined}
         initialRegion={DEFAULT_REGION}
         onRegionChangeComplete={onRegionChangeComplete}
         onPress={() => {

@@ -25,6 +25,7 @@ export interface FeedActivity {
   description: string;
   categories: string[];
   imageUrls: string[];
+  mapSnapshotUrl: string | null;
   timestamp: string;
   commentCount: number;
   saveCount: number;
@@ -98,7 +99,7 @@ export async function fetchActivitiesFeed(
     const { data } = await supabase
       .from('activities')
       .select(
-        'id, user_id, place_name, latitude, longitude, is_superlike, description, created_at, categories, image_urls',
+        'id, user_id, place_name, latitude, longitude, is_superlike, description, created_at, categories, image_urls, map_snapshot_url',
       )
       .in('user_id', friendIds)
       .order('created_at', { ascending: false });
@@ -123,6 +124,7 @@ export async function fetchActivitiesFeed(
           description: act.description ?? '',
           categories: Array.isArray(act.categories) ? act.categories : [],
           imageUrls: Array.isArray(act.image_urls) ? act.image_urls : [],
+          mapSnapshotUrl: act.map_snapshot_url ?? null,
           timestamp: formatTimestamp(act.created_at),
           commentCount: commentMap[act.id] ?? 0,
           saveCount: saveMap[act.id] ?? 0,

@@ -19,19 +19,23 @@ import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 function Checkbox({
   checked,
   onToggle,
+  error = false,
   children,
 }: {
   checked: boolean;
   onToggle: () => void;
+  /** After a failed sign-up attempt, outline this (still unticked) box in red. */
+  error?: boolean;
   children: ReactNode;
 }) {
+  const boxClass = checked
+    ? 'border border-brand-green-700 bg-brand-green-700'
+    : error
+      ? 'border-2 border-red-500 bg-white'
+      : 'border border-slate-300 bg-white';
   return (
     <Pressable onPress={onToggle} className="flex-row items-start gap-2.5">
-      <View
-        className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
-          checked ? 'border-brand-green-700 bg-brand-green-700' : 'border-slate-300 bg-white'
-        }`}
-      >
+      <View className={`mt-0.5 h-5 w-5 items-center justify-center rounded ${boxClass}`}>
         {checked ? <Check size={14} color="#ffffff" /> : null}
       </View>
       <View className="flex-1">{children}</View>
@@ -41,6 +45,7 @@ function Checkbox({
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
@@ -48,18 +53,32 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  // Set once the user taps a sign-up method without having accepted both boxes.
+  const [consentError, setConsentError] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  /** Guard shared by all three sign-up methods (Apple, Google, E-Mail). On a
+      failed attempt it surfaces the red hint + red-outlines the unticked box(es). */
   const ensureConsent = () => {
     if (!acceptedPrivacy || !acceptedTerms) {
-      setError(
-        'Bitte akzeptiere die Datenschutzerklärung und Nutzungsbedingungen, um fortzufahren.',
-      );
+      setConsentError(true);
       return false;
     }
     return true;
+  };
+
+  const togglePrivacy = () => {
+    setAcceptedPrivacy((v) => !v);
+    setConsentError(false);
+    if (error) setError('');
+  };
+
+  const toggleTerms = () => {
+    setAcceptedTerms((v) => !v);
+    setConsentError(false);
+    if (error) setError('');
   };
 
   const handleSubmit = async () => {
@@ -164,70 +183,13 @@ export default function RegisterScreen() {
             </Text>
 
             <View className="mt-8 gap-4">
-              <TextField
-                label="E-Mail"
-                icon={Mail}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                placeholder="name@beispiel.de"
-                maxLength={100}
-              />
-              <TextField
-                label="Vollständiger Name"
-                icon={User}
-                value={fullName}
-                onChangeText={setFullName}
-                placeholder="Max Mustermann"
-                maxLength={50}
-              />
-              <TextField
-                label="Benutzername"
-                icon={AtSign}
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-                placeholder="maxmuster"
-                maxLength={30}
-              />
-              <TextField
-                label="Passwort"
-                icon={Lock}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                placeholder="Mind. 6 Zeichen"
-                maxLength={100}
-              />
-              <TextField
-                label="Passwort wiederholen"
-                icon={Lock}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                placeholder="Passwort erneut eingeben"
-                maxLength={100}
-              />
-
-              {error ? (
-                <View className="rounded-lg border border-red-100 bg-red-50 px-4 py-2.5">
-                  <Text className="text-xs font-medium text-red-700">{error}</Text>
-                </View>
-              ) : null}
-              {success ? (
-                <View className="rounded-lg border border-brand-green-200 bg-brand-green-50 px-4 py-3">
-                  <Text className="text-xs font-medium leading-relaxed text-brand-green-800">
-                    {success}
-                  </Text>
-                </View>
-              ) : null}
-
+              {/* Consent — required before any sign-up method. On a failed attempt
+                  the unticked box(es) are outlined red + a red hint appears. */}
               <View className="gap-3 rounded-xl border border-slate-200 bg-white p-4">
                 <Checkbox
                   checked={acceptedPrivacy}
-                  onToggle={() => setAcceptedPrivacy((v) => !v)}
+                  onToggle={togglePrivacy}
+                  error={consentError}
                 >
                   <Text className="text-xs leading-relaxed text-slate-600">
                     Ich habe die{' '}
@@ -237,7 +199,7 @@ export default function RegisterScreen() {
                     zur Kenntnis genommen.
                   </Text>
                 </Checkbox>
-                <Checkbox checked={acceptedTerms} onToggle={() => setAcceptedTerms((v) => !v)}>
+                <Checkbox checked={acceptedTerms} onToggle={toggleTerms} error={consentError}>
                   <Text className="text-xs leading-relaxed text-slate-600">
                     Ich akzeptiere die{' '}
                     <Text className="font-semibold text-brand-green-700">
@@ -248,14 +210,118 @@ export default function RegisterScreen() {
                 </Checkbox>
               </View>
 
-              <Button
-                label="Konto erstellen"
-                trailingArrow
-                loading={loading}
-                onPress={handleSubmit}
-              />
+              {consentError ? (
+                <Text className="-mt-1 text-xs font-medium text-red-600">
+                  Bitte akzeptiere die Datenschutzerklärung und Nutzungsbedingungen, um
+                  fortzufahren.
+                </Text>
+              ) : null}
 
-              <SocialAuthButtons mode="register" onError={setError} guard={ensureConsent} />
+              {error ? (
+                <View className="rounded-lg border border-red-100 bg-red-50 px-4 py-2.5">
+                  <Text className="text-xs font-medium text-red-700">{error}</Text>
+                </View>
+              ) : null}
+
+              {showEmailForm ? (
+                <>
+                  <TextField
+                    label="E-Mail"
+                    icon={Mail}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    placeholder="name@beispiel.de"
+                    maxLength={100}
+                  />
+                  <TextField
+                    label="Vollständiger Name"
+                    icon={User}
+                    value={fullName}
+                    onChangeText={setFullName}
+                    placeholder="Max Mustermann"
+                    maxLength={50}
+                  />
+                  <TextField
+                    label="Benutzername"
+                    icon={AtSign}
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="none"
+                    placeholder="maxmuster"
+                    maxLength={30}
+                  />
+                  <TextField
+                    label="Passwort"
+                    icon={Lock}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    placeholder="Mind. 6 Zeichen"
+                    maxLength={100}
+                  />
+                  <TextField
+                    label="Passwort wiederholen"
+                    icon={Lock}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    placeholder="Passwort erneut eingeben"
+                    maxLength={100}
+                  />
+
+                  {success ? (
+                    <View className="rounded-lg border border-brand-green-200 bg-brand-green-50 px-4 py-3">
+                      <Text className="text-xs font-medium leading-relaxed text-brand-green-800">
+                        {success}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  <Button
+                    label="Konto erstellen"
+                    trailingArrow
+                    loading={loading}
+                    onPress={handleSubmit}
+                  />
+
+                  <Pressable
+                    onPress={() => {
+                      setShowEmailForm(false);
+                      setError('');
+                      setSuccess('');
+                    }}
+                    className="items-center py-1"
+                  >
+                    <Text className="text-sm font-medium text-slate-500">
+                      Andere Methode wählen
+                    </Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  {/* Apple (iOS) + Google, no "oder" divider — they're siblings of
+                      the e-mail button in the method chooser. */}
+                  <SocialAuthButtons
+                    mode="register"
+                    onError={setError}
+                    guard={ensureConsent}
+                    showDivider={false}
+                  />
+
+                  <Button
+                    label="Mit E-Mail registrieren"
+                    icon={Mail}
+                    onPress={() => {
+                      if (!ensureConsent()) return;
+                      setError('');
+                      setShowEmailForm(true);
+                    }}
+                  />
+                </>
+              )}
 
               <View className="mt-2 flex-row items-center justify-center">
                 <Text className="text-sm text-slate-500">Bereits ein Konto? </Text>

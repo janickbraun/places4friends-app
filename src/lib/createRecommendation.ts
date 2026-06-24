@@ -26,6 +26,28 @@ export async function uploadActivityImages(
   return urls;
 }
 
+/**
+ * Generate a cached static map snapshot for a place via the `generate-map-snapshot`
+ * Edge Function (Geoapify, server-side). Returns the stored public URL, or `null`
+ * if generation fails — the post is still created, just falling back to a live
+ * map tile. Best-effort, so callers never block post creation on it.
+ */
+export async function generateMapSnapshot(
+  latitude: number | null,
+  longitude: number | null,
+): Promise<string | null> {
+  if (latitude == null || longitude == null) return null;
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-map-snapshot', {
+      body: { latitude, longitude },
+    });
+    if (error) return null;
+    return (data as { url?: string } | null)?.url ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export interface NewRecommendation {
   userId: string;
   placeName: string;
@@ -36,6 +58,7 @@ export interface NewRecommendation {
   description: string;
   categories: string[];
   imageUrls: string[];
+  mapSnapshotUrl: string | null;
 }
 
 export function createRecommendation(rec: NewRecommendation) {
@@ -49,6 +72,7 @@ export function createRecommendation(rec: NewRecommendation) {
     description: rec.description || null,
     categories: rec.categories,
     image_urls: rec.imageUrls,
+    map_snapshot_url: rec.mapSnapshotUrl,
   });
 }
 

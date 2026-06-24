@@ -34,8 +34,13 @@ import {
 import { DEFAULT_REGION } from '@/lib/map';
 import { PLACE_CATEGORIES } from '@/lib/categories';
 import { reverseGeocode, searchPlaces, type PlaceSuggestion } from '@/lib/places';
-import { createRecommendation, uploadActivityImages } from '@/lib/createRecommendation';
-import { MapLayerControl, type MapLayer } from '@/components/map/MapLayerControl';
+import {
+  createRecommendation,
+  generateMapSnapshot,
+  uploadActivityImages,
+} from '@/lib/createRecommendation';
+import { MapLayerControl } from '@/components/map/MapLayerControl';
+import { useMapLayer } from '@/lib/mapLayer';
 
 type Coord = { latitude: number; longitude: number };
 const MAX_IMAGES = 3;
@@ -49,7 +54,7 @@ export default function CreateRecommendation({ user }: { user: User }) {
   const [region] = useState<Region>(DEFAULT_REGION);
   const [pin, setPin] = useState<Coord | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [mapLayer, setMapLayer] = useState<MapLayer>('standard');
+  const [mapLayer, setMapLayer] = useMapLayer();
 
   // Search
   const [query, setQuery] = useState('');
@@ -209,6 +214,12 @@ export default function CreateRecommendation({ user }: { user: User }) {
     setSaving(true);
     try {
       const imageUrls = assets.length > 0 ? await uploadActivityImages(user.id, assets) : [];
+      // Cache a static map snapshot once now (server-side, Geoapify) so the feed
+      // never re-fetches a map per render. Best-effort: null on failure.
+      const mapSnapshotUrl = await generateMapSnapshot(
+        pin?.latitude ?? null,
+        pin?.longitude ?? null,
+      );
       const { error: insertError } = await createRecommendation({
         userId: user.id,
         placeName: placeName.trim(),
@@ -219,6 +230,7 @@ export default function CreateRecommendation({ user }: { user: User }) {
         description: description.trim(),
         categories,
         imageUrls,
+        mapSnapshotUrl,
       });
       if (insertError) throw insertError;
       resetForm();
@@ -238,6 +250,8 @@ export default function CreateRecommendation({ user }: { user: User }) {
         ref={mapRef}
         style={{ flex: 1 }}
         mapType={mapLayer}
+        // Standard map always renders light, regardless of the device's dark mode.
+        userInterfaceStyle={mapLayer === 'standard' ? 'light' : undefined}
         initialRegion={region}
         onPress={handleMapPress}
         onPoiClick={handlePoiClick}

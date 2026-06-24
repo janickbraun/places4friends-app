@@ -142,6 +142,7 @@ function Feed({ user }: { user: User }) {
               friend={item.friend}
               onPressFriend={(id) => router.push(`/profile/${id}`)}
               imageUrls={item.imageUrls}
+              mapSnapshotUrl={item.mapSnapshotUrl}
               headerAction={<ReportMenu activityId={item.id} reporterId={user.id} />}
               bottomLeftActions={
                 <>

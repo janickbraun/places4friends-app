@@ -61,10 +61,11 @@ type ActivityRow = {
   created_at: string;
   categories: string[];
   image_urls: string[] | null;
+  map_snapshot_url: string | null;
 };
 
 const ACTIVITY_COLUMNS =
-  'id, user_id, place_name, latitude, longitude, is_superlike, description, created_at, categories, image_urls';
+  'id, user_id, place_name, latitude, longitude, is_superlike, description, created_at, categories, image_urls, map_snapshot_url';
 
 function profileToFriend(profile: ProfileRow | null, userId: string): FeedFriend {
   const name = profile?.full_name ?? profile?.username ?? 'Nutzer';
@@ -99,6 +100,7 @@ async function decorate(
     description: r.description ?? '',
     categories: Array.isArray(r.categories) ? r.categories : [],
     imageUrls: Array.isArray(r.image_urls) ? r.image_urls : [],
+    mapSnapshotUrl: r.map_snapshot_url ?? null,
     timestamp: formatTimestamp(r.created_at),
     commentCount: commentMap[r.id] ?? 0,
     saveCount: saveMap[r.id] ?? 0,
