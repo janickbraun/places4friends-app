@@ -1,6 +1,5 @@
 import {
   KeyboardAvoidingView,
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -12,6 +11,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Navigation, Sparkles, X } from 'lucide-react-native';
 import type { MapPin, MapPlaceDetails } from '@/lib/map';
+import { openDirections } from '@/lib/navigation';
+import { ReportMenu } from '@/components/ReportMenu';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { PlaceDetailSkeleton } from '@/components/skeletons/PlaceDetailSkeleton';
 
@@ -29,9 +30,7 @@ export function PlaceDetailSheet({ pin, details, loading, currentUserId, onClose
 
   const openInMaps = () => {
     if (!pin) return;
-    Linking.openURL(
-      `https://www.google.com/maps/search/?api=1&query=${pin.latitude},${pin.longitude}`,
-    ).catch(() => {});
+    openDirections({ name: pin.name, latitude: pin.latitude, longitude: pin.longitude });
   };
 
   const openProfile = () => {
@@ -72,13 +71,18 @@ export function PlaceDetailSheet({ pin, details, loading, currentUserId, onClose
                     </View>
                     <Text className="text-sm font-semibold text-slate-700">{pin.userName}</Text>
                   </Pressable>
-                  <Pressable
-                    onPress={onClose}
-                    accessibilityRole="button"
-                    className="h-8 w-8 items-center justify-center rounded-full bg-slate-100"
-                  >
-                    <X size={18} color="#334155" />
-                  </Pressable>
+                  <View className="flex-row items-center gap-1">
+                    {currentUserId && pin.userId !== currentUserId ? (
+                      <ReportMenu activityId={pin.id} reporterId={currentUserId} iconColor="#334155" />
+                    ) : null}
+                    <Pressable
+                      onPress={onClose}
+                      accessibilityRole="button"
+                      className="h-8 w-8 items-center justify-center rounded-full bg-slate-100"
+                    >
+                      <X size={18} color="#334155" />
+                    </Pressable>
+                  </View>
                 </View>
 
                 <View className="mt-3 flex-row items-center gap-2">

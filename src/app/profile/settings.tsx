@@ -14,6 +14,7 @@ import type { User } from '@supabase/supabase-js';
 import {
   ArrowLeft,
   AtSign,
+  Ban,
   Bell,
   ChevronRight,
   Download,
@@ -29,9 +30,11 @@ import {
 import type { LucideIcon } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import LegalFooter from '@/components/LegalFooter';
+import { Avatar } from '@/components/ui/Avatar';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SettingsSkeleton } from '@/components/skeletons/SettingsSkeleton';
 import { supabase } from '@/lib/supabase';
+import { fetchBlockedUsers, unblockUser, type BlockedUser } from '@/lib/blocks';
 import {
   changePassword,
   deleteOwnAccount,
@@ -242,6 +245,11 @@ function SettingsContent({ user }: { user: User }) {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const [blockedOpen, setBlockedOpen] = useState(false);
+  const [blocked, setBlocked] = useState<BlockedUser[]>([]);
+  const [blockedLoading, setBlockedLoading] = useState(false);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
+
   useEffect(() => {
     let active = true;
     void fetchAccountSettings(user.id).then((s) => {
@@ -376,6 +384,20 @@ function SettingsContent({ user }: { user: User }) {
     router.replace('/');
   };
 
+  const openBlocked = async () => {
+    setBlockedOpen(true);
+    setBlockedLoading(true);
+    setBlocked(await fetchBlockedUsers(user.id));
+    setBlockedLoading(false);
+  };
+
+  const handleUnblock = async (id: string) => {
+    setUnblockingId(id);
+    const { error } = await unblockUser(id);
+    if (!error) setBlocked((prev) => prev.filter((b) => b.id !== id));
+    setUnblockingId(null);
+  };
+
   const confirmSignOut = () => {
     Alert.alert('Abmelden?', 'Möchtest du dich wirklich abmelden?', [
       { text: 'Abbrechen', style: 'cancel' },
@@ -493,6 +515,15 @@ function SettingsContent({ user }: { user: User }) {
                 setDeleteError(null);
                 setDataOpen(true);
               }}
+            />
+            <View className="h-px bg-slate-50" />
+            <MenuRow
+              icon={Ban}
+              iconBg="#f1f5f9"
+              iconColor="#334155"
+              title="Blockierte Nutzer"
+              subtitle="Blockierte Nutzer anzeigen und entblocken"
+              onPress={openBlocked}
             />
           </View>
         </View>
@@ -616,10 +647,6 @@ function SettingsContent({ user }: { user: User }) {
               <Text className="text-xs font-semibold text-rose-600">Konto löschen</Text>
             </Pressable>
           </View>
-
-          <View className="border-t border-slate-100 pt-4">
-            <GhostButton label="Schließen" onPress={() => setDataOpen(false)} />
-          </View>
         </View>
       </SheetModal>
 
@@ -648,6 +675,51 @@ function SettingsContent({ user }: { user: User }) {
               <Text className="text-xs font-bold text-white">Löschen</Text>
             </Pressable>
           </View>
+        </View>
+      </SheetModal>
+
+      {/* Blocked users modal */}
+      <SheetModal open={blockedOpen} onClose={() => setBlockedOpen(false)} title="Blockierte Nutzer" icon={Ban}>
+        <View className="mt-4 gap-3">
+          {blockedLoading ? (
+            <View className="items-center py-8">
+              <ActivityIndicator color="#226622" />
+            </View>
+          ) : blocked.length === 0 ? (
+            <Text className="py-6 text-center text-xs text-slate-500">
+              Du hast niemanden blockiert.
+            </Text>
+          ) : (
+            <View className="gap-1">
+              {blocked.map((b) => {
+                const name = b.fullName ?? b.username ?? 'Nutzer';
+                return (
+                  <View key={b.id} className="flex-row items-center justify-between py-2">
+                    <View className="flex-1 flex-row items-center gap-3">
+                      <Avatar url={b.avatarUrl} name={name} id={b.id} size={36} />
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-slate-900">{name}</Text>
+                        {b.username ? (
+                          <Text className="mt-0.5 text-[10px] text-slate-400">@{b.username}</Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    <Pressable
+                      onPress={() => handleUnblock(b.id)}
+                      disabled={unblockingId === b.id}
+                      className="rounded-lg border border-slate-200 px-3 py-1.5"
+                    >
+                      {unblockingId === b.id ? (
+                        <ActivityIndicator size="small" color="#94a3b8" />
+                      ) : (
+                        <Text className="text-[11px] font-bold text-slate-600">Entblocken</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </View>
       </SheetModal>
     </View>

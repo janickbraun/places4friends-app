@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import MapView, { Marker, type Region } from 'react-native-maps';
+import MapView, { type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -43,7 +43,7 @@ import { searchPlaces, type PlaceSuggestion } from '@/lib/places';
 import { fetchFriendships, type FriendProfile } from '@/lib/friends';
 import { PLACE_CATEGORIES } from '@/lib/categories';
 import { PlaceMapMarker } from '@/components/map/PlaceMarker';
-import { ClusterMarker } from '@/components/map/ClusterMarker';
+import { ClusterMapMarker } from '@/components/map/ClusterMarker';
 import { PlaceDetailSheet } from '@/components/map/PlaceDetailSheet';
 import { MapLayerControl, type MapLayer } from '@/components/map/MapLayerControl';
 import { Avatar } from '@/components/ui/Avatar';
@@ -376,14 +376,12 @@ export default function MapCanvas() {
           if (c.properties.cluster) {
             const id = c.properties.cluster_id;
             return (
-              <Marker
+              <ClusterMapMarker
                 key={`cluster-${id}`}
+                count={c.properties.point_count}
                 coordinate={{ latitude: lat, longitude: lng }}
                 onPress={() => handleClusterPress(id, lng, lat)}
-                tracksViewChanges={false}
-              >
-                <ClusterMarker count={c.properties.point_count} />
-              </Marker>
+              />
             );
           }
           const { pin } = c.properties;

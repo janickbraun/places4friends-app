@@ -5,6 +5,7 @@ import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { Bookmark, Compass, MessageCircle, Users } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
+import { ReportMenu } from '@/components/ReportMenu';
 import VerificationBanner from '@/components/VerificationBanner';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { ActivityCardSkeletonList } from '@/components/skeletons/ActivityCardSkeleton';
@@ -141,6 +142,7 @@ function Feed({ user }: { user: User }) {
               friend={item.friend}
               onPressFriend={(id) => router.push(`/profile/${id}`)}
               imageUrls={item.imageUrls}
+              headerAction={<ReportMenu activityId={item.id} reporterId={user.id} />}
               bottomLeftActions={
                 <>
                   <Pressable

@@ -14,7 +14,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
-import { Check, Clock, Copy, Link2, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native';
+import { Ban, Check, Clock, Copy, Link2, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import VerificationBanner from '@/components/VerificationBanner';
 import { Avatar } from '@/components/ui/Avatar';
@@ -34,6 +34,7 @@ import {
   type RawFriendship,
   type SearchProfile,
 } from '@/lib/friends';
+import { blockUser } from '@/lib/blocks';
 
 type Tab = 'friends' | 'requests';
 
@@ -160,6 +161,21 @@ function FriendsContent({ user }: { user: User }) {
       { text: 'Abbrechen', style: 'cancel' },
       { text: 'Entfernen', style: 'destructive', onPress: () => void onDelete(f) },
     ]);
+  };
+
+  const confirmBlock = (f: FriendProfile) => {
+    Alert.alert(
+      'Nutzer blockieren?',
+      `${f.fullName ?? 'Dieser Nutzer'} wird blockiert und aus deinen Freunden entfernt. Ihr könnt euch dann nicht mehr finden, anschreiben oder eure Kommentare sehen.`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Blockieren',
+          style: 'destructive',
+          onPress: () => void withBusy(f.id, () => blockUser(f.id)),
+        },
+      ],
+    );
   };
 
   const shareUrl = (url: string) =>
@@ -333,8 +349,13 @@ function FriendsContent({ user }: { user: User }) {
                             {
                               label: 'Freund entfernen',
                               icon: UserMinus,
-                              destructive: true,
                               onPress: () => confirmRemove(f),
+                            },
+                            {
+                              label: 'Blockieren',
+                              icon: Ban,
+                              destructive: true,
+                              onPress: () => confirmBlock(f),
                             },
                           ]}
                         />

@@ -1,8 +1,9 @@
 import { type ReactNode, useState } from 'react';
-import { Linking, Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { MapPin, Navigation, Sparkles, X } from 'lucide-react-native';
 import type { FeedFriend } from '@/lib/activities';
+import { openDirections } from '@/lib/navigation';
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
 
@@ -52,10 +53,7 @@ export default function ActivityCard({
   const mapUrl = hasMap ? staticMapUrl(latitude!, longitude!, single ? '800x300' : '600x600') : null;
 
   const openMaps = () => {
-    const url = hasCoords
-      ? `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`
-      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName)}`;
-    Linking.openURL(url).catch(() => {});
+    openDirections({ name: placeName, latitude, longitude });
   };
 
   return (

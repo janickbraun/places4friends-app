@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Apple } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
@@ -104,17 +104,20 @@ export function SocialAuthButtons({ mode, onError, guard }: Props) {
         )}
       </Pressable>
 
-      <Pressable
-        onPress={handleApple}
-        disabled={loading !== null}
-        accessibilityRole="button"
-        className={`w-full flex-row items-center justify-center gap-2.5 rounded-xl bg-black py-3.5 ${
-          loading !== null ? 'opacity-60' : ''
-        }`}
-      >
-        <Apple size={18} color="#ffffff" fill="#ffffff" />
-        <Text className="text-sm font-semibold text-white">Mit Apple {verb}</Text>
-      </Pressable>
+      {/* Sign in with Apple is iOS-only (and App Store-required there); hidden on Android. */}
+      {Platform.OS === 'ios' ? (
+        <Pressable
+          onPress={handleApple}
+          disabled={loading !== null}
+          accessibilityRole="button"
+          className={`w-full flex-row items-center justify-center gap-2.5 rounded-xl bg-black py-3.5 ${
+            loading !== null ? 'opacity-60' : ''
+          }`}
+        >
+          <Apple size={18} color="#ffffff" fill="#ffffff" />
+          <Text className="text-sm font-semibold text-white">Mit Apple {verb}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

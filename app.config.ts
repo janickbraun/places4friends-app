@@ -14,6 +14,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         'Wir verwenden deinen Standort, um Orte in deiner Nähe auf der Karte anzuzeigen.',
       NSPhotoLibraryUsageDescription:
         'Wir verwenden deine Fotos, um sie zu deinen Ortsempfehlungen hinzuzufügen.',
+      // Lets Linking.canOpenURL detect Google Maps so we can offer it alongside
+      // Apple Karten in the navigation chooser (see src/lib/navigation.ts).
+      LSApplicationQueriesSchemes: [
+        ...((config.ios?.infoPlist?.LSApplicationQueriesSchemes as string[] | undefined) ?? []),
+        'comgooglemaps',
+      ],
     },
   },
   android: {

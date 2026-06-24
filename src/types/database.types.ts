@@ -233,6 +233,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          banned_at: string | null
           created_at: string | null
           email_verified: boolean | null
           full_name: string | null
@@ -242,6 +243,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          banned_at?: string | null
           created_at?: string | null
           email_verified?: boolean | null
           full_name?: string | null
@@ -251,6 +253,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          banned_at?: string | null
           created_at?: string | null
           email_verified?: boolean | null
           full_name?: string | null
@@ -289,6 +292,87 @@ export type Database = {
           {
             foreignKeyName: "recommendations_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          activity_id: string
+          created_at: string
+          id: string
+          reporter_id: string
+          resolution: string | null
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          id?: string
+          reporter_id: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          id?: string
+          reporter_id?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -337,8 +421,12 @@ export type Database = {
     }
     Functions: {
       accept_friend_invite: { Args: { p_token: string }; Returns: Json }
-      delete_own_user: { Args: Record<PropertyKey, never>; Returns: undefined }
+      block_user: { Args: { p_target: string }; Returns: undefined }
+      delete_own_user: { Args: never; Returns: undefined }
+      is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
+      is_friend_of: { Args: { p_target: string }; Returns: boolean }
       redeem_friend_invite_link: { Args: { p_token: string }; Returns: Json }
+      unblock_user: { Args: { p_target: string }; Returns: undefined }
       validate_friend_invite_link: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {

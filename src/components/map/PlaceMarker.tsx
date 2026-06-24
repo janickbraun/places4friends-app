@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Marker } from 'react-native-maps';
@@ -48,9 +48,12 @@ function MarkerBody({ pin, onAvatarLoad }: { pin: MapPin; onAvatarLoad?: () => v
 }
 
 /**
- * Self-contained <Marker> for a place. Keeps `tracksViewChanges` on only until
- * the avatar image has loaded — otherwise react-native-maps renders image-backed
- * markers blank on iOS. Initials-only markers never track (best performance).
+ * Self-contained <Marker> for a place. On Android a marker renders into a bitmap
+ * snapshot; if `tracksViewChanges` is off when that snapshot is taken the pin is
+ * captured before its avatar/initials have painted, so it shows blank until a later
+ * redraw (why pins/avatars appeared to load slowly). We track view changes through
+ * the initial paint — re-armed when the pin's identity or avatar changes — and stop
+ * once the content is on screen for performance.
  */
 export function PlaceMapMarker({
   pin,
@@ -62,18 +65,33 @@ export function PlaceMapMarker({
   onPress: () => void;
 }) {
   const hasAvatar = !!pin.userAvatarUrl;
-  const [tracks, setTracks] = useState(hasAvatar);
+  const [tracks, setTracks] = useState(true);
+  const mounted = useRef(true);
+  useEffect(() => () => {
+    mounted.current = false;
+  }, []);
 
-  // Safety: stop tracking even if the image never reports onLoad.
+  // Re-arm tracking on identity/avatar change; cap it so a never-firing onLoad
+  // (or initials-only markers, which paint synchronously) still settles to false.
   useEffect(() => {
-    if (!hasAvatar) return;
-    const t = setTimeout(() => setTracks(false), 1500);
-    return () => clearTimeout(t);
-  }, [hasAvatar]);
+    setTracks(true);
+    const cap = setTimeout(() => {
+      if (mounted.current) setTracks(false);
+    }, hasAvatar ? 1500 : 300);
+    return () => clearTimeout(cap);
+  }, [pin.id, pin.userAvatarUrl, pin.isMustSee, hasAvatar]);
+
+  // Defer one frame after the image loads so the decoded avatar is painted into the
+  // view before the final snapshot — without this Android captures it empty.
+  const handleAvatarLoad = () => {
+    requestAnimationFrame(() => {
+      if (mounted.current) setTracks(false);
+    });
+  };
 
   return (
     <Marker coordinate={coordinate} onPress={onPress} tracksViewChanges={tracks}>
-      <MarkerBody pin={pin} onAvatarLoad={() => setTracks(false)} />
+      <MarkerBody pin={pin} onAvatarLoad={handleAvatarLoad} />
     </Marker>
   );
 }

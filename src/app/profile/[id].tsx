@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -12,17 +13,22 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { User } from '@supabase/supabase-js';
 import {
   ArrowLeft,
+  Ban,
   Bookmark,
   Clock,
   MapPin,
   MessageCircle,
   Sparkles,
   UserCheck,
+  UserMinus,
   UserPlus,
   X,
 } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
+import { ReportMenu } from '@/components/ReportMenu';
+import { PopoverMenu, type PopoverMenuItem } from '@/components/ui/PopoverMenu';
+import { blockUser } from '@/lib/blocks';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { ProfileHeaderSkeleton } from '@/components/skeletons/ProfileHeaderSkeleton';
 import { ActivityCardSkeleton } from '@/components/skeletons/ActivityCardSkeleton';
@@ -153,6 +159,38 @@ function PublicProfileContent({
     setSubmitting(false);
   };
 
+  const handleBlock = async () => {
+    setSubmitting(true);
+    const { error } = await blockUser(profileId);
+    setSubmitting(false);
+    if (error) {
+      Alert.alert('Fehler', 'Der Nutzer konnte nicht blockiert werden.');
+      return;
+    }
+    // Friendship is gone and the profile's posts are now private — leave the screen.
+    goBack();
+  };
+
+  const confirmRemove = () => {
+    const n = data?.profile.fullName ?? data?.profile.username ?? 'Diesen Freund';
+    Alert.alert('Freundschaft entfernen?', `${n} aus deinen Freunden entfernen?`, [
+      { text: 'Abbrechen', style: 'cancel' },
+      { text: 'Entfernen', style: 'destructive', onPress: () => void handleRemove() },
+    ]);
+  };
+
+  const confirmBlock = () => {
+    const n = data?.profile.fullName ?? data?.profile.username ?? 'Diesen Nutzer';
+    Alert.alert(
+      'Nutzer blockieren?',
+      `${n} wird blockiert und aus deinen Freunden entfernt. Ihr könnt euch dann nicht mehr finden, anschreiben oder eure Kommentare sehen.`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        { text: 'Blockieren', style: 'destructive', onPress: () => void handleBlock() },
+      ],
+    );
+  };
+
   const handleAcceptInvite = async () => {
     if (!inviteToken || inviteState !== 'valid') return;
     setSubmitting(true);
@@ -202,7 +240,7 @@ function PublicProfileContent({
     setLoadingFriends(false);
   };
 
-  const Header = (
+  const renderHeader = (right?: ReactNode) => (
     <ScreenHeader
       title="Profil"
       titleClassName="text-lg font-bold text-slate-900"
@@ -215,13 +253,14 @@ function PublicProfileContent({
           <ArrowLeft size={20} color="#64748b" />
         </Pressable>
       }
+      right={right}
     />
   );
 
   if (loading || profileId === currentUserId) {
     return (
       <View className="flex-1 bg-slate-50">
-        {Header}
+        {renderHeader()}
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
           <ProfileHeaderSkeleton avatarSize={88} />
           <View className="mt-8 gap-3.5">
@@ -236,7 +275,7 @@ function PublicProfileContent({
   if (notFound || !data) {
     return (
       <View className="flex-1 bg-slate-50">
-        {Header}
+        {renderHeader()}
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-sm font-semibold text-slate-900">Profil nicht gefunden</Text>
           <Text className="mt-2 text-center text-xs text-slate-500">
@@ -260,9 +299,24 @@ function PublicProfileContent({
           ? 'Dieser Einladungslink ist ungültig.'
           : null;
 
+  // Header "⋮" menu: always offers Blockieren; offers removing the friendship/request
+  // when one exists. Friendship management lives here, so the "Befreundet" pill below
+  // is just a status indicator.
+  const friendshipMenuLabel =
+    friendship?.status === 'accepted'
+      ? 'Freundschaft entfernen'
+      : friendship?.senderId === currentUserId
+        ? 'Anfrage zurückziehen'
+        : 'Anfrage ablehnen';
+  const menuItems: PopoverMenuItem[] = [];
+  if (friendship) {
+    menuItems.push({ label: friendshipMenuLabel, icon: UserMinus, onPress: confirmRemove });
+  }
+  menuItems.push({ label: 'Blockieren', icon: Ban, destructive: true, onPress: confirmBlock });
+
   return (
     <View className="flex-1 bg-slate-50">
-      {Header}
+      {renderHeader(<PopoverMenu items={menuItems} iconColor="#64748b" />)}
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
         keyboardShouldPersistTaps="handled"
@@ -389,6 +443,7 @@ function PublicProfileContent({
                       categories={place.categories}
                       timestamp={place.timestamp}
                       imageUrls={place.imageUrls}
+                      headerAction={<ReportMenu activityId={place.id} reporterId={currentUserId} />}
                       bottomLeftActions={
                         <>
                           <Pressable
