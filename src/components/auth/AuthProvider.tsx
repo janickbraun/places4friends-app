@@ -8,6 +8,10 @@ import {
 } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import {
+  registerForPushNotificationsAsync,
+  removeCurrentPushToken,
+} from '@/lib/notifications';
 
 interface AuthContextType {
   user: User | null;
@@ -75,6 +79,14 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
+  // Register this device for push notifications once a user is signed in. The
+  // call is idempotent (upserts the token) and only prompts for the OS
+  // permission the first time.
+  useEffect(() => {
+    if (!user) return;
+    void registerForPushNotificationsAsync(user.id);
+  }, [user?.id]);
+
   // Load the initial session (from AsyncStorage) and subscribe to auth changes.
   useEffect(() => {
     let mounted = true;
@@ -91,9 +103,12 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted) {
         setUser(session?.user ?? null);
+        if (event === 'SIGNED_OUT') {
+          removeCurrentPushToken();
+        }
       }
     });
 

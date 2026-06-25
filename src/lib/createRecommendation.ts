@@ -1,6 +1,7 @@
 import { decode } from 'base64-arraybuffer';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
+import { notifyPush } from '@/lib/notifications';
 
 /**
  * Upload picked images to the public `activity-images` bucket and return their
@@ -61,19 +62,28 @@ export interface NewRecommendation {
   mapSnapshotUrl: string | null;
 }
 
-export function createRecommendation(rec: NewRecommendation) {
-  return supabase.from('activities').insert({
-    user_id: rec.userId,
-    place_name: rec.placeName,
-    place_address: rec.placeAddress,
-    latitude: rec.latitude,
-    longitude: rec.longitude,
-    is_superlike: rec.isSuperlike,
-    description: rec.description || null,
-    categories: rec.categories,
-    image_urls: rec.imageUrls,
-    map_snapshot_url: rec.mapSnapshotUrl,
-  });
+export async function createRecommendation(rec: NewRecommendation) {
+  const result = await supabase
+    .from('activities')
+    .insert({
+      user_id: rec.userId,
+      place_name: rec.placeName,
+      place_address: rec.placeAddress,
+      latitude: rec.latitude,
+      longitude: rec.longitude,
+      is_superlike: rec.isSuperlike,
+      description: rec.description || null,
+      categories: rec.categories,
+      image_urls: rec.imageUrls,
+      map_snapshot_url: rec.mapSnapshotUrl,
+    })
+    .select('id')
+    .single();
+  // Notify the author's friends about the new recommendation.
+  if (!result.error && result.data) {
+    void notifyPush({ event: 'new_place', activityId: result.data.id });
+  }
+  return result;
 }
 
 export interface UpdateRecommendation {

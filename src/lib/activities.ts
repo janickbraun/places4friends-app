@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { notifyPush } from '@/lib/notifications';
 import {
   buildActivityCountMap,
   formatTimestamp,
@@ -145,8 +146,10 @@ export async function fetchActivitiesFeed(
   };
 }
 
-export function addToWishlist(userId: string, activityId: string) {
-  return supabase.from('wishlist').insert({ user_id: userId, activity_id: activityId });
+export async function addToWishlist(userId: string, activityId: string) {
+  const result = await supabase.from('wishlist').insert({ user_id: userId, activity_id: activityId });
+  if (!result.error) void notifyPush({ event: 'save', activityId });
+  return result;
 }
 
 export function removeFromWishlist(userId: string, activityId: string) {
@@ -192,10 +195,12 @@ export async function fetchComments(activityId: string): Promise<ActivityComment
   });
 }
 
-export function addComment(activityId: string, userId: string, content: string) {
-  return supabase
+export async function addComment(activityId: string, userId: string, content: string) {
+  const result = await supabase
     .from('activity_comments')
     .insert({ activity_id: activityId, user_id: userId, content });
+  if (!result.error) void notifyPush({ event: 'comment', activityId });
+  return result;
 }
 
 export function updateComment(commentId: string, content: string) {
