@@ -3,20 +3,20 @@ import { supabase } from '@/lib/supabase';
 export interface AccountSettings {
   fullName: string;
   username: string;
-  notificationsFriendRequests: boolean;
+  notificationsEnabled: boolean;
 }
 
 /** Load the editable account/profile settings for the current user. */
 export async function fetchAccountSettings(userId: string): Promise<AccountSettings> {
   const { data } = await supabase
     .from('profiles')
-    .select('full_name, username, notifications_friend_requests')
+    .select('full_name, username, notifications_enabled')
     .eq('id', userId)
     .maybeSingle();
   return {
     fullName: data?.full_name ?? '',
     username: data?.username ?? '',
-    notificationsFriendRequests: data?.notifications_friend_requests ?? true,
+    notificationsEnabled: data?.notifications_enabled ?? true,
   };
 }
 
@@ -26,7 +26,7 @@ export interface SaveProfileInput {
   username: string;
   email: string;
   currentEmail: string;
-  notificationsFriendRequests: boolean;
+  notificationsEnabled: boolean;
   baseNotifications: boolean;
   baseFullName: string;
   baseUsername: string;
@@ -50,7 +50,7 @@ export async function saveProfileSettings(input: SaveProfileInput): Promise<Save
   const shouldUpdateProfile =
     fullName !== (input.baseFullName.trim() || null) ||
     username !== (input.baseUsername.trim() || null) ||
-    input.notificationsFriendRequests !== input.baseNotifications;
+    input.notificationsEnabled !== input.baseNotifications;
   const shouldUpdateEmail = email !== input.currentEmail.trim();
 
   if (shouldUpdateProfile) {
@@ -61,7 +61,7 @@ export async function saveProfileSettings(input: SaveProfileInput): Promise<Save
           id: input.userId,
           full_name: fullName,
           username,
-          notifications_friend_requests: input.notificationsFriendRequests,
+          notifications_enabled: input.notificationsEnabled,
         },
         { onConflict: 'id' },
       );

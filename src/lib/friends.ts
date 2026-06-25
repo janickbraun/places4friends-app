@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { notifyPush } from '@/lib/notifications';
 import { getAvatarUrl } from '@/lib/format';
 import { SITE_URL } from '@/lib/site';
 
@@ -106,14 +107,21 @@ export async function searchProfiles(query: string, userId: string): Promise<Sea
   }));
 }
 
-export function sendFriendRequest(userId: string, targetId: string) {
-  return supabase
+export async function sendFriendRequest(userId: string, targetId: string) {
+  const result = await supabase
     .from('friendships')
     .insert({ sender_id: userId, receiver_id: targetId, status: 'pending' });
+  if (!result.error) void notifyPush({ event: 'friend_request', targetUserId: targetId });
+  return result;
 }
 
-export function acceptFriendRequest(friendshipId: string) {
-  return supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId);
+export async function acceptFriendRequest(friendshipId: string) {
+  const result = await supabase
+    .from('friendships')
+    .update({ status: 'accepted' })
+    .eq('id', friendshipId);
+  if (!result.error) void notifyPush({ event: 'friend_accept', friendshipId });
+  return result;
 }
 
 export function deleteFriendship(friendshipId: string) {
@@ -195,6 +203,9 @@ export async function redeemInviteLink(params: {
   }
   // Guard against a token that belongs to a different profile than the one opened.
   if (r.creator_id && r.creator_id !== profileId) return { success: false, error: 'mismatch' };
+
+  // Notify the link creator that someone joined via their invite.
+  void notifyPush({ event: 'friend_accept', targetUserId: r.creator_id ?? profileId });
 
   return { success: true };
 }

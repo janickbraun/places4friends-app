@@ -69,6 +69,13 @@
             "buildReactNativeFromSource": true
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#226622"
+        }
       ]
     ],
     "experiments": {

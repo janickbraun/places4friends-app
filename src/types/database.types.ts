@@ -241,6 +241,7 @@ export type Database = {
           email_verified: boolean | null
           full_name: string | null
           id: string
+          notifications_enabled: boolean
           notifications_friend_requests: boolean
           username: string | null
         }
@@ -251,6 +252,7 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string | null
           id: string
+          notifications_enabled?: boolean
           notifications_friend_requests?: boolean
           username?: string | null
         }
@@ -261,10 +263,46 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string | null
           id?: string
+          notifications_enabled?: boolean
           notifications_friend_requests?: boolean
           username?: string | null
         }
         Relationships: []
+      }
+      push_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string | null
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform?: string | null
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string | null
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recommendations: {
         Row: {
@@ -426,6 +464,10 @@ export type Database = {
       accept_friend_invite: { Args: { p_token: string }; Returns: Json }
       block_user: { Args: { p_target: string }; Returns: undefined }
       delete_own_user: { Args: never; Returns: undefined }
+      has_blocked: {
+        Args: { p_blocker: string; p_target: string }
+        Returns: boolean
+      }
       is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
       is_friend_of: { Args: { p_target: string }; Returns: boolean }
       redeem_friend_invite_link: { Args: { p_token: string }; Returns: Json }

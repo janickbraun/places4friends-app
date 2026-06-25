@@ -1,56 +1,72 @@
-# Welcome to your Expo app 👋
+# 📍 places4friends
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Keep localism alive.** Discover, share, and pin your favorite independent spots with the friends you trust.
 
-## Get started
+---
 
-1. Install dependencies
+## 🌟 What is places4friends?
 
-   ```bash
-   npm install
-   ```
+In a world increasingly dominated by global chains and corporate franchises, **local independent shops are losing their visibility**. Finding that authentic, cozy neighborhood café, that unique boutique bookstore, or that family-run pizzeria is becoming harder because advertising budgets and algorithms naturally favor corporate giants.
 
-2. Start the app
+At **places4friends**, we believe that the best recommendations don't come from paid ads or anonymous online reviews—they come from **the people you actually know and trust**.
 
-   ```bash
-   npx expo start
-   ```
+We are reclaiming localism by creating a personal, shared space where you and your friends can:
+- **Spotlight local gems:** Pin and recommend independent cafés, bars, restaurants, and shops.
+- **Ditch the noise:** Get recommendations exclusively from your friends, free from sponsored ads, clutter, or fake reviews.
+- **Support local communities:** Direct your attention and spending to independent business owners who keep our neighborhoods unique and vibrant.
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 📱 Core Features
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **Interactive Social Map:** See all your friends' recommended spots in one beautiful, clustered map interface.
+- **Trusted Circles:** Add friends via secure invite links to build a network of people whose tastes you value.
+- **Quick Recommendations:** Save places, mark them as "must-see" (favoriten), add custom comments, and share photos.
+- **Seamless Parity:** Fully synchronized with the web platform to ensure you have access to your spots on any device.
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## 🛠️ The Tech Stack
 
+This project is built using a modern, performant, and type-safe mobile development stack:
+
+- **Frontend:** [React Native](https://reactnative.dev/) & [Expo](https://expo.dev/) (SDK 56) with Expo Router for file-based routing.
+- **Styling:** [NativeWind](https://www.nativewind.dev/) (Tailwind CSS) for responsive, utility-first styling.
+- **Backend & Auth:** [Supabase](https://supabase.com/) (Postgres DB, Row Level Security (RLS) for privacy, and Deno-powered Edge Functions).
+- **Maps:** `react-native-maps` with `supercluster` for smooth marker clustering.
+- **State Management:** [TanStack Query](https://tanstack.com/query) for robust data fetching and cache synchronization.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+This application depends on native modules (such as Google Sign-In and Map maps) and therefore requires a **Development Build** (running on iOS Simulator or Android Emulator) rather than the standard Expo Go app.
+
+### 2. Installation
+Install dependencies:
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 3. Environment Setup
+Copy the example environment file and fill in your credentials:
+```bash
+cp .env.example .env
+```
+Ensure you configure the Supabase URL, anon key, Google OAuth IDs, Mapbox public token, and Google Maps API keys.
 
-### Other setup steps
+### 4. Running the App
+Start the Expo development server:
+```bash
+npm start
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Use the following commands to build and run the native apps:
+```bash
+# iOS
+npm run ios
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# Android
+npm run android
+```

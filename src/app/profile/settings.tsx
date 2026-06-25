@@ -43,6 +43,7 @@ import {
   saveProfileSettings,
 } from '@/lib/settings';
 import { startOnboarding } from '@/lib/onboarding';
+import { registerForPushNotificationsAsync } from '@/lib/notifications';
 
 const USERNAME_RE = /^[a-zA-Z0-9_.]+$/;
 
@@ -256,10 +257,10 @@ function SettingsContent({ user }: { user: User }) {
       if (!active) return;
       setBaseName(s.fullName);
       setBaseUsername(s.username);
-      setBaseNotifications(s.notificationsFriendRequests);
+      setBaseNotifications(s.notificationsEnabled);
       setFullName(s.fullName);
       setUsername(s.username);
-      setNotifications(s.notificationsFriendRequests);
+      setNotifications(s.notificationsEnabled);
       setLoading(false);
     });
     return () => {
@@ -293,7 +294,7 @@ function SettingsContent({ user }: { user: User }) {
       username,
       email,
       currentEmail: email0,
-      notificationsFriendRequests: notifications,
+      notificationsEnabled: notifications,
       baseNotifications,
       baseFullName: baseName,
       baseUsername,
@@ -341,13 +342,20 @@ function SettingsContent({ user }: { user: User }) {
   const handleSaveNotifications = async () => {
     setStatus('saving');
     setMessage(null);
+    // When turning notifications on, request the OS permission and store the
+    // device's push token. A missing token means permission was denied.
+    let permissionMissing = false;
+    if (notifications) {
+      const token = await registerForPushNotificationsAsync(user.id);
+      permissionMissing = !token;
+    }
     const res = await saveProfileSettings({
       userId: user.id,
       fullName: baseName,
       username: baseUsername,
       email: email0,
       currentEmail: email0,
-      notificationsFriendRequests: notifications,
+      notificationsEnabled: notifications,
       baseNotifications,
       baseFullName: baseName,
       baseUsername,
@@ -355,8 +363,12 @@ function SettingsContent({ user }: { user: User }) {
     if (!res.ok) return showErr(res.error ?? 'Speichern fehlgeschlagen.');
     setBaseNotifications(notifications);
     setStatus('success');
-    setMessage('Gespeichert.');
-    setTimeout(() => setNotifOpen(false), 1200);
+    setMessage(
+      permissionMissing
+        ? 'Gespeichert. Aktiviere Benachrichtigungen in den Geräteeinstellungen, um Push zu erhalten.'
+        : 'Gespeichert.',
+    );
+    setTimeout(() => setNotifOpen(false), 1600);
   };
 
   const handleExport = async () => {
@@ -578,8 +590,10 @@ function SettingsContent({ user }: { user: User }) {
             <View className="flex-1 flex-row items-center gap-3">
               <Bell size={20} color="#94a3b8" />
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-slate-800">Freundschaftsanfragen</Text>
-                <Text className="text-xs text-slate-500">Push-Benachrichtigung bei neuen Anfragen</Text>
+                <Text className="text-sm font-semibold text-slate-800">Push-Benachrichtigungen</Text>
+                <Text className="text-xs text-slate-500">
+                  Neue Orte, Kommentare, Speicherungen und Freundschaften
+                </Text>
               </View>
             </View>
             <View
@@ -593,7 +607,8 @@ function SettingsContent({ user }: { user: User }) {
             </View>
           </Pressable>
           <Text className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500">
-            Push-Versand ist vorbereitet, wird aber erst aktiv, sobald wir die Systemberechtigung anfragen.
+            Erhalte eine Benachrichtigung, wenn ein Freund einen neuen Ort empfiehlt, deinen Beitrag
+            kommentiert oder speichert, dir eine Freundschaftsanfrage schickt oder ihr Freunde werdet.
           </Text>
           <Banner kind={status} message={message} />
           <View className="flex-row gap-3 border-t border-slate-100 pt-4">
