@@ -241,6 +241,7 @@ function ProfileContent({ user }: { user: User }) {
               friend={tab === 'saved' ? item.friend : undefined}
               onPressFriend={tab === 'saved' ? (id) => router.push(`/profile/${id}`) : undefined}
               imageUrls={item.imageUrls}
+              mapSnapshotUrl={item.mapSnapshotUrl}
               headerAction={
                 tab === 'recs' ? (
                   <PopoverMenu

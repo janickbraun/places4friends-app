@@ -339,13 +339,14 @@ function SettingsContent({ user }: { user: User }) {
     setPwMessage(m);
   };
 
-  const handleSaveNotifications = async () => {
-    setStatus('saving');
+  // Auto-saves immediately when the switch is flipped (no explicit save button).
+  const handleToggleNotifications = async (next: boolean) => {
+    setNotifications(next);
     setMessage(null);
     // When turning notifications on, request the OS permission and store the
     // device's push token. A missing token means permission was denied.
     let permissionMissing = false;
-    if (notifications) {
+    if (next) {
       const token = await registerForPushNotificationsAsync(user.id);
       permissionMissing = !token;
     }
@@ -355,20 +356,23 @@ function SettingsContent({ user }: { user: User }) {
       username: baseUsername,
       email: email0,
       currentEmail: email0,
-      notificationsEnabled: notifications,
+      notificationsEnabled: next,
       baseNotifications,
       baseFullName: baseName,
       baseUsername,
     });
-    if (!res.ok) return showErr(res.error ?? 'Speichern fehlgeschlagen.');
-    setBaseNotifications(notifications);
-    setStatus('success');
-    setMessage(
-      permissionMissing
-        ? 'Gespeichert. Aktiviere Benachrichtigungen in den Geräteeinstellungen, um Push zu erhalten.'
-        : 'Gespeichert.',
-    );
-    setTimeout(() => setNotifOpen(false), 1600);
+    if (!res.ok) {
+      setNotifications(!next); // revert the optimistic toggle
+      return showErr(res.error ?? 'Speichern fehlgeschlagen.');
+    }
+    setBaseNotifications(next);
+    if (permissionMissing) {
+      setStatus('error');
+      setMessage('Aktiviere Benachrichtigungen in den Geräteeinstellungen, um Push zu erhalten.');
+    } else {
+      setStatus('idle');
+      setMessage(null);
+    }
   };
 
   const handleExport = async () => {
@@ -441,7 +445,6 @@ function SettingsContent({ user }: { user: User }) {
     fullName.trim() !== baseName.trim() ||
     username.trim() !== baseUsername.trim() ||
     email.trim() !== email0.trim();
-  const notifChanged = notifications !== baseNotifications;
 
   return (
     <View className="flex-1 bg-slate-50">
@@ -580,11 +583,11 @@ function SettingsContent({ user }: { user: User }) {
         </View>
       </SheetModal>
 
-      {/* Notifications modal */}
+      {/* Notifications modal — the switch auto-saves on toggle. */}
       <SheetModal open={notifOpen} onClose={() => setNotifOpen(false)} title="Benachrichtigungen" icon={Bell}>
         <View className="mt-4 gap-4">
           <Pressable
-            onPress={() => setNotifications((v) => !v)}
+            onPress={() => handleToggleNotifications(!notifications)}
             className="flex-row items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"
           >
             <View className="flex-1 flex-row items-center gap-3">
@@ -606,18 +609,7 @@ function SettingsContent({ user }: { user: User }) {
               />
             </View>
           </Pressable>
-          <Text className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500">
-            Erhalte eine Benachrichtigung, wenn ein Freund einen neuen Ort empfiehlt, deinen Beitrag
-            kommentiert oder speichert, dir eine Freundschaftsanfrage schickt oder ihr Freunde werdet.
-          </Text>
           <Banner kind={status} message={message} />
-          <View className="flex-row gap-3 border-t border-slate-100 pt-4">
-            <GhostButton label="Abbrechen" onPress={() => {
-              setNotifications(baseNotifications);
-              setNotifOpen(false);
-            }} />
-            <PrimaryButton label="Speichern" icon={Bell} onPress={handleSaveNotifications} disabled={!notifChanged} busy={status === 'saving'} />
-          </View>
         </View>
       </SheetModal>
 

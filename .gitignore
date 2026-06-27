@@ -38,6 +38,10 @@ yarn-error.*
 .env
 .env*.local
 
+# Firebase FCM client config (used for Android push; kept out of git like .env).
+# For EAS cloud builds, commit it or add it as an EAS file secret instead.
+google-services.json
+
 # typescript
 *.tsbuildinfo
 

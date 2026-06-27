@@ -54,11 +54,15 @@ export default function ActivityCard({
   const hasMap = !!mapSnapshotUrl || hasLiveMap;
   const tileCount = (hasMap ? 1 : 0) + imageUrls.length;
   const single = tileCount === 1;
+  // With exactly two photos the map + 2 tiles would leave a dangling cell in the
+  // 2-column grid. Give the map full width (like the no-photo case) so the two
+  // photos wrap cleanly into a row beneath it.
+  const mapWide = single || imageUrls.length === 2;
   // Prefer the cached snapshot (legal to store); fall back to a live Mapbox tile
   // for older posts created before snapshotting.
   const mapUrl =
     mapSnapshotUrl ??
-    (hasLiveMap ? staticMapUrl(latitude!, longitude!, single ? '800x300' : '600x600') : null);
+    (hasLiveMap ? staticMapUrl(latitude!, longitude!, mapWide ? '800x300' : '600x600') : null);
   // Required map attribution, shown as a caption under the tile (we crop the
   // provider's baked-in credit, so we must reproduce it ourselves).
   const mapAttribution = mapSnapshotUrl
@@ -104,13 +108,13 @@ export default function ActivityCard({
             <Pressable
               onPress={openMaps}
               accessibilityLabel="Auf Karte ansehen"
-              style={{ width: single ? '100%' : '48%' }}
+              style={{ width: mapWide ? '100%' : '48%' }}
             >
               <Image
                 source={{ uri: mapUrl }}
                 style={{
                   width: '100%',
-                  aspectRatio: single ? 21 / 9 : 1,
+                  aspectRatio: mapWide ? 21 / 9 : 1,
                   borderRadius: 12,
                   backgroundColor: '#f1f5f9',
                 }}
