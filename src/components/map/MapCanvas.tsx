@@ -283,7 +283,7 @@ export default function MapCanvas() {
     setSelectedPin(pin);
     setDetails(null);
     setDetailsLoading(true);
-    setDetails(await fetchPlaceDetails(pin.id));
+    setDetails(await fetchPlaceDetails(pin.id, currentUserId));
     setDetailsLoading(false);
   }, []);
 

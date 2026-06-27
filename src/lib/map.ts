@@ -42,6 +42,9 @@ export interface MapPlaceDetails {
   categories: string[];
   imageUrls: string[];
   createdAt: string;
+  saveCount: number;
+  commentCount: number;
+  isSaved: boolean;
 }
 
 export interface MapPinFilters {
@@ -230,17 +233,38 @@ export async function fetchUserPins(
   return fetchOverviewPins({ ...filters, userId });
 }
 
-export async function fetchPlaceDetails(id: string): Promise<MapPlaceDetails | null> {
-  const { data, error } = await supabase
-    .from('activities')
-    .select('description, categories, image_urls, created_at')
-    .eq('id', id)
-    .single();
+export async function fetchPlaceDetails(
+  id: string,
+  currentUserId: string | null = null,
+): Promise<MapPlaceDetails | null> {
+  const [{ data, error }, { count: commentCount }, { count: saveCount }, savedRes] =
+    await Promise.all([
+      supabase
+        .from('activities')
+        .select('description, categories, image_urls, created_at')
+        .eq('id', id)
+        .single(),
+      supabase
+        .from('activity_comments')
+        .select('id', { count: 'exact', head: true })
+        .eq('activity_id', id),
+      supabase.from('wishlist').select('id', { count: 'exact', head: true }).eq('activity_id', id),
+      currentUserId
+        ? supabase
+            .from('wishlist')
+            .select('id', { count: 'exact', head: true })
+            .eq('activity_id', id)
+            .eq('user_id', currentUserId)
+        : Promise.resolve({ count: 0 as number | null }),
+    ]);
   if (error || !data) return null;
   return {
     review: data.description ?? '',
     categories: Array.isArray(data.categories) ? data.categories : [],
     imageUrls: Array.isArray(data.image_urls) ? data.image_urls : [],
     createdAt: data.created_at,
+    commentCount: commentCount ?? 0,
+    saveCount: saveCount ?? 0,
+    isSaved: (savedRes.count ?? 0) > 0,
   };
 }

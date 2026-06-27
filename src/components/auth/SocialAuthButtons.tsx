@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { isExpoGo } from '@/lib/runtime';
@@ -71,10 +71,51 @@ export function SocialAuthButtons({ mode, onError, guard, showDivider = true }: 
 
   const handleApple = async () => {
     if (guard && !guard()) return;
-    // TODO (Apple Sign-In): real flow with expo-apple-authentication ->
-    // supabase.auth.signInWithIdToken({ provider: 'apple', token }). Needs the
-    // Apple provider configured in Supabase and ios.usesAppleSignIn = true.
-    Alert.alert('Apple-Anmeldung', 'Die Apple-Anmeldung wird in Kürze verfügbar sein.');
+    if (isExpoGo) {
+      onError('Apple-Anmeldung benötigt einen Development Build (nicht in Expo Go verfügbar).');
+      return;
+    }
+    try {
+      setLoading('apple');
+      // Loaded lazily: importing this module touches a native module that only
+      // exists in a build with the Sign-in-with-Apple entitlement.
+      const AppleAuthentication = await import('expo-apple-authentication');
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error('Kein Identity-Token von Apple erhalten.');
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+      if (error) throw error;
+      // Apple only returns the name on the very first authorization, and it never
+      // appears in the identity token — so persist it to the profile here. Guarded
+      // by `full_name IS NULL` so we never overwrite a name the user later edits.
+      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      if (fullName && data.user) {
+        await supabase
+          .from('profiles')
+          .update({ full_name: fullName })
+          .eq('id', data.user.id)
+          .is('full_name', null);
+      }
+      router.replace('/');
+    } catch (e) {
+      // User-cancelled the native sheet -> stay silent.
+      if (e instanceof Error && 'code' in e && (e as { code?: string }).code === 'ERR_REQUEST_CANCELED') {
+        return;
+      }
+      onError(e instanceof Error ? e.message : 'Apple-Anmeldung fehlgeschlagen.');
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
