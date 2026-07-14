@@ -66,11 +66,31 @@ the same Supabase client.
 **Data layer** — one **shared** Supabase client (`@/lib/supabase`), unlike the web
 app's per-request clients. Data access is organized one file per domain under
 `src/lib/` (`activities`, `friends`, `map`, `places`, `createRecommendation`,
-`profile`); UI components never call Supabase directly. **RLS scopes reads to the
-user + accepted friends**, so queries deliberately omit manual network filtering
-(e.g. `fetchViewportPins` just filters by bounds). TanStack Query handles caching.
-Generated DB types live in [src/types/database.types.ts](src/types/database.types.ts) —
-regenerate after schema changes, don't hand-edit.
+`profile`, `blocks`, `reports`, `settings`); UI components never call Supabase
+directly. **RLS scopes reads to the user + accepted friends**, so queries
+deliberately omit manual network filtering (e.g. `fetchViewportPins` just filters
+by bounds). Generated DB types live in
+[src/types/database.types.ts](src/types/database.types.ts) — regenerate after
+schema changes, don't hand-edit.
+
+**State lives in three places**, and mixing them up causes bugs: **server state**
+→ TanStack Query (all Supabase reads/caching); **auth session** → the AuthProvider
+context; **client-only device preferences** → module-level `useSyncExternalStore`
+stores backed by AsyncStorage — [mapLayer.ts](src/lib/mapLayer.ts) (`useMapLayer`)
+and [onboarding.ts](src/lib/onboarding.ts). These stores are singletons so every
+screen sees the same value live and it survives restarts; don't reach for context
+or Query for them.
+
+**Moderation (security-sensitive)** — blocking and reporting mirror the same
+"RLS + `SECURITY DEFINER` RPC" model as friend invites. `blockUser`/`unblockUser`
+([src/lib/blocks.ts](src/lib/blocks.ts)) call the `block_user`/`unblock_user`
+RPCs, which atomically tear down any friendship/request in either direction and
+record the block; RLS then hides the two users from each other (profiles, requests,
+and each other's comments under mutual friends' posts). Reporting
+([src/lib/reports.ts](src/lib/reports.ts), UI in
+[ReportMenu](src/components/ReportMenu.tsx)) is an idempotent upsert on
+`reports (activity_id, reporter_id)` — a repeat report is a silent no-op. Enforce
+these boundaries server-side; don't add client shortcuts.
 
 **Friend invites (security-sensitive)** — clients are forbidden by RLS from
 inserting or self-accepting an `accepted` friendship. The only sanctioned path to
@@ -83,7 +103,19 @@ Don't add a client-side shortcut that bypasses them.
 and web tile zoom levels so search-result zoom matches the web's `getZoomLevelForType`.
 `DEFAULT_REGION` is the centre of Germany. Tapping the active Karte tab fires a
 `DeviceEventEmitter` event (`MAP_RESET_ZOOM_EVENT`) to clear search/selection and
-zoom out, mirroring the web's `reset-map-zoom` window event.
+zoom out, mirroring the web's `reset-map-zoom` window event. The base layer
+(standard vs. "Satellit"/hybrid) is a persisted preference via `useMapLayer`
+(see State, above). Opening directions goes through
+[src/lib/navigation.ts](src/lib/navigation.ts), which offers Apple Karten and (on
+iOS) Google Maps — the Google option requires the `comgooglemaps` entry in
+`LSApplicationQueriesSchemes`, injected by `app.config.ts`.
+
+**Recommendation map thumbnails** — on post creation, `generateMapSnapshot`
+([src/lib/createRecommendation.ts](src/lib/createRecommendation.ts)) calls the
+`generate-map-snapshot` Edge Function (Geoapify, server-side) to produce and cache
+a static map image (`map_snapshot_url`). It's best-effort: failure returns `null`
+and the post still saves, with [ActivityCard](src/components/ActivityCard.tsx)
+falling back to a live map tile.
 
 **Place search** — `searchPlaces` calls the `places-search` Edge Function, which
 prefers Google Places (when `GOOGLE_PLACES_API_KEY` is set as a function secret)
@@ -92,8 +124,8 @@ body. If the function itself is unreachable, the client falls back to a direct
 Mapbox request, so search degrades gracefully.
 
 **Supabase Edge Functions** (`supabase/functions/`, Deno runtime, excluded from the
-app `tsconfig`): `places-search`, `send-verification-email`, `verify-email`. Deploy
-with the Supabase CLI; they are not part of the Metro bundle.
+app `tsconfig`): `places-search`, `generate-map-snapshot`, `send-verification-email`,
+`verify-email`. Deploy with the Supabase CLI; they are not part of the Metro bundle.
 
 ## Conventions
 
