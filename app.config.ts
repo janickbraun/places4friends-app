@@ -1,7 +1,10 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 // Extends the static app.json with values that depend on env vars / runtime:
-// location permission strings and the Android Google Maps key for react-native-maps.
+// location permission strings, the Android Google Maps key for react-native-maps,
+// and the Android google-services.json (FCM). The latter is gitignored, so on EAS
+// cloud builds it comes from the GOOGLE_SERVICES_JSON file env var (which EAS sets
+// to the mounted file's path); locally it falls back to the on-disk file.
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: config.name ?? 'places4friends-mobile-app',
@@ -24,6 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     ...config.android,
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? config.android?.googleServicesFile,
     permissions: [
       ...(config.android?.permissions ?? []),
       'ACCESS_FINE_LOCATION',
