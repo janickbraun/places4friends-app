@@ -2,7 +2,7 @@
   "expo": {
     "name": "places4friends",
     "slug": "places4friends-mobile-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Erstelle eine interaktive Karte mit deinen Freunden. Empfiehl Restaurants, Bars, Cafés und Aktivitäten ohne anonyme Reise-Bewertungen - direkt von deinen Freunden empfohlen.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
