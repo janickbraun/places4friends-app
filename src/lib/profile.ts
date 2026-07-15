@@ -12,12 +12,26 @@ import type { FeedActivity, FeedFriend } from '@/lib/activities';
 
 /**
  * Upload a cropped avatar to the public `avatars` bucket and point the user's
- * profile at it. Mirrors the web app: a fixed `${userId}/avatar.jpg` path
- * (overwritten on each change) with the path stored in `profiles.avatar_url`.
+ * profile at it. Each upload uses a UNIQUE filename (`${userId}/avatar-<ts>.jpg`)
+ * and the old file is removed afterwards. A fixed path overwritten in place kept
+ * the public URL byte-identical across changes, so any consumer that renders the
+ * URL without a cache-buster — notably the map markers ([map.ts](src/lib/map.ts))
+ * — showed the cached old picture forever. A fresh path guarantees a new URL on
+ * every change, which invalidates image caches everywhere without re-downloading
+ * on each fetch the way a `?t=Date.now()` query param would.
  */
 export async function uploadAvatar(userId: string, asset: ImagePickerAsset): Promise<void> {
   if (!asset.base64) throw new Error('Kein Bild ausgewählt.');
-  const path = `${userId}/avatar.jpg`;
+
+  // Remember the current file so we can delete it after the swap succeeds.
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('avatar_url')
+    .eq('id', userId)
+    .maybeSingle();
+  const previousPath = existing?.avatar_url ?? null;
+
+  const path = `${userId}/avatar-${Date.now()}.jpg`;
   const { error: uploadError } = await supabase.storage
     .from('avatars')
     .upload(path, decode(asset.base64), { contentType: 'image/jpeg', upsert: true });
@@ -28,6 +42,13 @@ export async function uploadAvatar(userId: string, asset: ImagePickerAsset): Pro
     .update({ avatar_url: path })
     .eq('id', userId);
   if (updateError) throw updateError;
+
+  // Best-effort cleanup of the previous storage object so old avatars don't pile
+  // up. Skip external URLs (e.g. a Google OAuth avatar) — those aren't ours to
+  // delete. A cleanup failure must not fail the update.
+  if (previousPath && previousPath !== path && !/^https?:\/\//.test(previousPath)) {
+    await supabase.storage.from('avatars').remove([previousPath]);
+  }
 }
 
 export interface ProfileInfo {
@@ -54,6 +75,7 @@ type ActivityRow = {
   id: string;
   user_id: string;
   place_name: string;
+  place_address: string | null;
   latitude: number | null;
   longitude: number | null;
   is_superlike: boolean;
@@ -65,7 +87,7 @@ type ActivityRow = {
 };
 
 const ACTIVITY_COLUMNS =
-  'id, user_id, place_name, latitude, longitude, is_superlike, description, created_at, categories, image_urls, map_snapshot_url';
+  'id, user_id, place_name, place_address, latitude, longitude, is_superlike, description, created_at, categories, image_urls, map_snapshot_url';
 
 function profileToFriend(profile: ProfileRow | null, userId: string): FeedFriend {
   const name = profile?.full_name ?? profile?.username ?? 'Nutzer';
@@ -94,6 +116,7 @@ async function decorate(
   return rows.map((r) => ({
     id: r.id,
     placeName: r.place_name,
+    address: r.place_address ?? null,
     latitude: r.latitude,
     longitude: r.longitude,
     isMustSee: r.is_superlike,
@@ -156,19 +179,22 @@ export async function fetchUserActivities(userId: string): Promise<FeedActivity[
 }
 
 export async function fetchWishlistActivities(userId: string): Promise<FeedActivity[]> {
+  // Order by when the user saved each item — newest save first — not by the
+  // underlying post's date.
   const { data: wl } = await supabase
     .from('wishlist')
-    .select('activity_id')
-    .eq('user_id', userId);
-  const activityIds = (wl ?? []).map((w) => w.activity_id);
-  if (activityIds.length === 0) return [];
-
-  const { data } = await supabase
-    .from('activities')
-    .select(ACTIVITY_COLUMNS)
-    .in('id', activityIds)
+    .select('activity_id, created_at')
+    .eq('user_id', userId)
     .order('created_at', { ascending: false });
+  const orderedIds = (wl ?? []).map((w) => w.activity_id);
+  if (orderedIds.length === 0) return [];
+
+  const { data } = await supabase.from('activities').select(ACTIVITY_COLUMNS).in('id', orderedIds);
   const rows = data ?? [];
+
+  // `.in()` returns rows in arbitrary order; restore the saved-date order above.
+  const rank = new Map(orderedIds.map((id, i) => [id, i] as const));
+  rows.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
 
   const ownerIds = Array.from(new Set(rows.map((r) => r.user_id)));
   const { data: profiles } = await supabase

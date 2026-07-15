@@ -2,12 +2,15 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { handleOptions, json } from '../_shared/cors.ts';
 
-// Sends Expo push notifications for the five major social events. Called by the
-// mobile app (verify_jwt = true) as a fire-and-forget step right after the
-// underlying mutation succeeds. The authenticated caller is the *actor*; the
-// function resolves recipients with the service role, validates each event
-// against real rows so a client can't spam arbitrary pushes, honours each
-// recipient's `notifications_enabled` flag, and delivers to their device tokens.
+// Sends Expo push notifications for the five major social events AND persists an
+// in-app notification row per recipient (the bell feed). Called by the mobile
+// app (verify_jwt = true) as a fire-and-forget step right after the underlying
+// mutation succeeds. The authenticated caller is the *actor*; the function
+// resolves recipients with the service role, validates each event against real
+// rows so a client can't spam arbitrary pushes, persists the in-app feed rows
+// for every recipient, then delivers a push to those who have it enabled and
+// have a device token. In-app persistence is independent of the push toggle so
+// the bell still shows events for users who declined OS push permission.
 
 type PushEvent = 'new_place' | 'comment' | 'save' | 'friend_request' | 'friend_accept';
 
@@ -122,6 +125,35 @@ async function deliver(
   }
 
   return tokens.length;
+}
+
+/**
+ * Persist an in-app notification row for each recipient (deduped, actor
+ * excluded). Independent of the push toggle and device tokens so the bell feed
+ * populates even when the recipient has push disabled. Best-effort: a failure
+ * here never blocks the push delivery below.
+ */
+async function persistNotifications(
+  admin: SupabaseClient,
+  recipientIds: string[],
+  actorId: string,
+  type: PushEvent,
+  content: NotificationContent,
+  activityId: string | null,
+): Promise<void> {
+  const recipients = [...new Set(recipientIds)].filter((id) => id && id !== actorId);
+  if (recipients.length === 0) return;
+  const rows = recipients.map((userId) => ({
+    user_id: userId,
+    actor_id: actorId,
+    type,
+    activity_id: activityId,
+    title: content.title,
+    body: content.body,
+    data: content.data,
+  }));
+  const { error } = await admin.from('notifications').insert(rows);
+  if (error) console.error('persist notifications failed:', error.message);
 }
 
 Deno.serve(async (req: Request) => {
@@ -269,6 +301,14 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!content) return json({ ok: true, sent: 0 });
+  await persistNotifications(
+    admin,
+    recipients,
+    actorId,
+    payload.event,
+    content,
+    payload.activityId ?? null,
+  );
   const sent = await deliver(admin, recipients, actorId, content);
   return json({ ok: true, sent });
 });

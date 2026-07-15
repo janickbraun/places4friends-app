@@ -16,6 +16,7 @@ import { getLoginErrorMessage } from '@/lib/authErrors';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
+import LegalFooter from '@/components/LegalFooter';
 
 type ForgotStatus = 'idle' | 'sending' | 'success' | 'error';
 
@@ -193,6 +194,8 @@ export default function LoginScreen() {
                       autoComplete="current-password"
                       placeholder="Dein Passwort"
                       maxLength={100}
+                      returnKeyType="go"
+                      onSubmitEditing={handleLogin}
                     />
                   </View>
 
@@ -223,6 +226,7 @@ export default function LoginScreen() {
               )}
             </View>
           </View>
+          <LegalFooter />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   DeviceEventEmitter,
+  Keyboard,
   Pressable,
   ScrollView,
   Text,
@@ -31,6 +32,7 @@ import {
   fetchUserPins,
   fetchViewportPins,
   getZoomLevelForType,
+  MAP_REFRESH_PINS_EVENT,
   MAP_RESET_ZOOM_EVENT,
   regionToBounds,
   regionToZoom,
@@ -163,6 +165,16 @@ export default function MapCanvas() {
     return () => sub.remove();
   }, [resetToOverview]);
 
+  // Re-fetch markers in place when something that affects them changed elsewhere
+  // (e.g. the user updated their avatar on the profile tab), so the map reflects
+  // it without a manual pan.
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(MAP_REFRESH_PINS_EVENT, () => {
+      void loadPins();
+    });
+    return () => sub.remove();
+  }, [loadPins]);
+
   // Restore the saved viewport + load pins on mount.
   useEffect(() => {
     (async () => {
@@ -268,6 +280,7 @@ export default function MapCanvas() {
   }, [supercluster, region]);
 
   const handlePinPress = useCallback(async (pin: MapPin) => {
+    Keyboard.dismiss();
     // Center the pin in the upper area and zoom in to detail (keeping the current
     // zoom if already closer) so it sits clearly above the bottom detail sheet.
     const targetDelta = Math.min(regionRef.current.latitudeDelta, DETAIL_DELTA);
@@ -289,6 +302,7 @@ export default function MapCanvas() {
 
   const handleClusterPress = useCallback(
     (clusterId: number, lng: number, lat: number) => {
+      Keyboard.dismiss();
       // Fit the camera to the cluster's actual members (web `handleClusterExpand`)
       // rather than a fixed expansion delta, so the group spreads out edge-to-edge.
       const leaves = supercluster.getLeaves(clusterId, Infinity);
@@ -367,6 +381,7 @@ export default function MapCanvas() {
         initialRegion={DEFAULT_REGION}
         onRegionChangeComplete={onRegionChangeComplete}
         onPress={() => {
+          Keyboard.dismiss();
           setShowSuggestions(false);
           setFilterOpen(false);
         }}
@@ -413,6 +428,11 @@ export default function MapCanvas() {
               setShowSuggestions(true);
             }}
             onFocus={() => setShowSuggestions(true)}
+            onSubmitEditing={() => {
+              // Enter loads the first suggestion, like clicking it.
+              if (suggestions.length > 0) onSelectSuggestion(suggestions[0]);
+            }}
+            returnKeyType="search"
             placeholder="Ort suchen..."
             placeholderTextColor="#94a3b8"
             className="ml-3 flex-1 text-sm font-medium text-slate-800"

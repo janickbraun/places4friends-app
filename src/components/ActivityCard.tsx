@@ -15,6 +15,7 @@ function staticMapUrl(lat: number, lng: number, size: string): string {
 type Props = {
   id: string;
   placeName: string;
+  address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   isMustSee?: boolean;
@@ -34,6 +35,7 @@ type Props = {
 /** Place recommendation card — mirrors the web ActivityCard layout. */
 export default function ActivityCard({
   placeName,
+  address,
   latitude,
   longitude,
   isMustSee = false,
@@ -72,7 +74,7 @@ export default function ActivityCard({
       : null;
 
   const openMaps = () => {
-    openDirections({ name: placeName, latitude, longitude });
+    openDirections({ name: placeName, address, latitude, longitude });
   };
 
   return (

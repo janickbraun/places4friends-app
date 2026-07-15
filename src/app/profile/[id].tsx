@@ -436,6 +436,7 @@ function PublicProfileContent({
                       key={place.id}
                       id={place.id}
                       placeName={place.placeName}
+                      address={place.address}
                       latitude={place.latitude}
                       longitude={place.longitude}
                       isMustSee={place.isMustSee}

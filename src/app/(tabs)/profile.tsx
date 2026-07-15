@@ -1,12 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  DeviceEventEmitter,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import type { User } from '@supabase/supabase-js';
-import { MapPin, MessageCircle, Pencil, Settings, Trash2 } from 'lucide-react-native';
+import { Bookmark, MapPin, MessageCircle, Pencil, Settings, Trash2 } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
+import { NotificationBell } from '@/components/NotificationBell';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -16,7 +27,8 @@ import VerificationBanner from '@/components/VerificationBanner';
 import LegalFooter from '@/components/LegalFooter';
 import EditRecommendationSheet from '@/components/EditRecommendationSheet';
 import { getInitials, getUserColor } from '@/lib/format';
-import type { FeedActivity } from '@/lib/activities';
+import { MAP_REFRESH_PINS_EVENT } from '@/lib/map';
+import { removeFromWishlist, type FeedActivity } from '@/lib/activities';
 import {
   deleteActivity,
   fetchProfileInfo,
@@ -38,6 +50,7 @@ function ProfileContent({ user }: { user: User }) {
   const [saved, setSaved] = useState<FeedActivity[]>([]);
   const [tab, setTab] = useState<Tab>('recs');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [editing, setEditing] = useState<FeedActivity | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -64,10 +77,24 @@ function ProfileContent({ user }: { user: User }) {
 
   useEffect(() => {
     mounted.current = true;
-    void load();
     return () => {
       mounted.current = false;
     };
+  }, []);
+
+  // Reload whenever the Profil tab regains focus, so a just-saved post or a
+  // newly created recommendation shows up instantly. The screen stays mounted
+  // across tab switches, so a mount-only fetch would otherwise go stale.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    if (mounted.current) setRefreshing(false);
   }, [load]);
 
   const pickAvatar = async () => {
@@ -93,6 +120,8 @@ function ProfileContent({ user }: { user: User }) {
     try {
       await uploadAvatar(user.id, result.assets[0]);
       await load();
+      // Tell the map to re-fetch so pin avatars pick up the new picture.
+      DeviceEventEmitter.emit(MAP_REFRESH_PINS_EVENT);
     } catch {
       Alert.alert('Fehler', 'Das Profilbild konnte nicht aktualisiert werden.');
     } finally {
@@ -112,6 +141,20 @@ function ProfileContent({ user }: { user: User }) {
         },
       },
     ]);
+  };
+
+  // Un-save from the "Gespeichert" tab: drop it from the list immediately (and
+  // adjust the saves stat), reverting if the delete fails.
+  const unsave = async (activityId: string) => {
+    const snapshot = saved;
+    setSaved(snapshot.filter((a) => a.id !== activityId));
+    setStats((s) => ({ ...s, saves: Math.max(0, s.saves - 1) }));
+    const { error } = await removeFromWishlist(user.id, activityId);
+    if (error) {
+      setSaved(snapshot);
+      setStats((s) => ({ ...s, saves: s.saves + 1 }));
+      Alert.alert('Fehler', 'Der Beitrag konnte nicht aus „Gespeichert“ entfernt werden.');
+    }
   };
 
   const name = info?.fullName ?? info?.username ?? 'Profil';
@@ -179,14 +222,17 @@ function ProfileContent({ user }: { user: User }) {
     <ScreenHeader
       title="Profil"
       right={
-        <Pressable
-          onPress={() => router.push('/profile/settings')}
-          accessibilityLabel="Einstellungen"
-          className="h-9 w-9 items-center justify-center rounded-full"
-          hitSlop={6}
-        >
-          <Settings size={18} color="#64748b" />
-        </Pressable>
+        <View className="flex-row items-center gap-1">
+          <NotificationBell userId={user.id} />
+          <Pressable
+            onPress={() => router.push('/profile/settings')}
+            accessibilityLabel="Einstellungen"
+            className="h-9 w-9 items-center justify-center rounded-full"
+            hitSlop={6}
+          >
+            <Settings size={18} color="#64748b" />
+          </Pressable>
+        </View>
       }
     />
   );
@@ -216,6 +262,14 @@ function ProfileContent({ user }: { user: User }) {
         ListHeaderComponent={ListHeader}
         ListFooterComponent={<LegalFooter />}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, gap: 16 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#226622"
+            colors={['#226622']}
+          />
+        }
         ListEmptyComponent={
           <View className="mt-10 items-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12">
             <MapPin size={32} color="#cbd5e1" />
@@ -232,6 +286,7 @@ function ProfileContent({ user }: { user: User }) {
             <ActivityCard
               id={item.id}
               placeName={item.placeName}
+              address={item.address}
               latitude={item.latitude}
               longitude={item.longitude}
               isMustSee={item.isMustSee}
@@ -258,16 +313,33 @@ function ProfileContent({ user }: { user: User }) {
                 ) : undefined
               }
               bottomLeftActions={
-                <Pressable
-                  onPress={() => setActiveId((prev) => (prev === item.id ? null : item.id))}
-                  className="flex-row items-center gap-1.5 p-1"
-                  hitSlop={6}
-                >
-                  <MessageCircle size={18} color="#64748b" />
-                  {commentCount > 0 ? (
-                    <Text className="text-[11px] font-semibold text-slate-500">{commentCount}</Text>
+                <>
+                  {tab === 'saved' ? (
+                    <Pressable
+                      onPress={() => unsave(item.id)}
+                      accessibilityLabel="Aus „Gespeichert“ entfernen"
+                      className="flex-row items-center gap-1.5 p-1"
+                      hitSlop={6}
+                    >
+                      <Bookmark size={20} color="#226622" fill="#226622" />
+                      {item.saveCount > 0 ? (
+                        <Text className="text-[11px] font-semibold text-brand-green-700">
+                          {item.saveCount}
+                        </Text>
+                      ) : null}
+                    </Pressable>
                   ) : null}
-                </Pressable>
+                  <Pressable
+                    onPress={() => setActiveId((prev) => (prev === item.id ? null : item.id))}
+                    className="flex-row items-center gap-1.5 p-1"
+                    hitSlop={6}
+                  >
+                    <MessageCircle size={18} color="#64748b" />
+                    {commentCount > 0 ? (
+                      <Text className="text-[11px] font-semibold text-slate-500">{commentCount}</Text>
+                    ) : null}
+                  </Pressable>
+                </>
               }
             >
               {activeId === item.id ? (

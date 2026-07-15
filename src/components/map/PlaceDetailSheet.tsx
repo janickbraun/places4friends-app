@@ -56,7 +56,12 @@ export function PlaceDetailSheet({ pin, details, loading, currentUserId, onClose
 
   const openInMaps = () => {
     if (!pin) return;
-    openDirections({ name: pin.name, latitude: pin.latitude, longitude: pin.longitude });
+    openDirections({
+      name: pin.name,
+      address: details?.address ?? null,
+      latitude: pin.latitude,
+      longitude: pin.longitude,
+    });
   };
 
   const openProfile = () => {

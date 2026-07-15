@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
   Switch,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -44,12 +45,20 @@ import { useMapLayer } from '@/lib/mapLayer';
 
 type Coord = { latitude: number; longitude: number };
 const MAX_IMAGES = 3;
+// Fraction of the screen height the input sheet takes; the remainder stays as a
+// map strip at the top so the placed pin is still visible above the sheet.
+const SHEET_RATIO = 0.72;
 
 /** Map-first create flow (full-screen map + search + tap-to-add sheet). Lazy-loaded. */
 export default function CreateRecommendation({ user }: { user: User }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const mapRef = useRef<MapView>(null);
+
+  // The custom BottomNav floats over the screen (h-16 + bottom inset), so the
+  // sheet's scroll content must clear it or the save button hides behind it.
+  const NAV_BAR_HEIGHT = 64;
 
   const [region] = useState<Region>(DEFAULT_REGION);
   const [pin, setPin] = useState<Coord | null>(null);
@@ -71,6 +80,7 @@ export default function CreateRecommendation({ user }: { user: User }) {
   const [assets, setAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   // Center on the user's location once on mount.
   useEffect(() => {
@@ -88,6 +98,20 @@ export default function CreateRecommendation({ user }: { user: User }) {
         400,
       );
     })();
+  }, []);
+
+  // Track keyboard visibility so the sheet's scroll padding can switch between
+  // clearing the floating nav bar (keyboard closed) and hugging the keyboard
+  // (open) — avoiding a big blank gap under the save button.
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvt, () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener(hideEvt, () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
   }, []);
 
   // Debounced search.
@@ -109,8 +133,21 @@ export default function CreateRecommendation({ user }: { user: User }) {
   const openSheetAt = (coord: Coord) => {
     setPin(coord);
     setSheetOpen(true);
+    const longitudeDelta = 0.01;
+    // The map keeps longitudeDelta but stretches latitudeDelta to the portrait
+    // view's aspect ratio (and longitude degrees are shorter than latitude at
+    // this latitude), so the real vertical span is taller than longitudeDelta.
+    // Compute it so the southward shift below lands the pin exactly centered in
+    // the map strip that stays visible above the sheet.
+    const latitudeDelta =
+      longitudeDelta * Math.cos((coord.latitude * Math.PI) / 180) * (windowHeight / windowWidth);
     mapRef.current?.animateToRegion(
-      { ...coord, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+      {
+        latitude: coord.latitude - (SHEET_RATIO / 2) * latitudeDelta,
+        longitude: coord.longitude,
+        latitudeDelta,
+        longitudeDelta,
+      },
       500,
     );
   };
@@ -348,11 +385,13 @@ export default function CreateRecommendation({ user }: { user: User }) {
       {sheetOpen ? (
         <View className="absolute inset-0" style={{ justifyContent: 'flex-end' }}>
           <Pressable className="flex-1" onPress={() => setSheetOpen(false)} />
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <View
-              className="rounded-t-3xl bg-white"
-              style={{ maxHeight: 560, boxShadow: '0px -8px 40px rgba(0,0,0,0.12)' }}
-            >
+          <View
+            className="rounded-t-3xl bg-white"
+            style={{
+              maxHeight: windowHeight * SHEET_RATIO,
+              boxShadow: '0px -8px 40px rgba(0,0,0,0.12)',
+            }}
+          >
               {/* Handle */}
               <View className="flex-row items-center justify-between border-b border-slate-100 px-5 pb-3 pt-4">
                 <View className="flex-row items-center gap-2">
@@ -370,8 +409,16 @@ export default function CreateRecommendation({ user }: { user: User }) {
               </View>
 
               <ScrollView
-                contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24, gap: 16 }}
+                contentContainerStyle={{
+                  padding: 20,
+                  // Keyboard closed: clear the floating nav bar. Keyboard open:
+                  // the nav is hidden, so only a small gap — the keyboard inset
+                  // (automaticallyAdjustKeyboardInsets) handles the rest.
+                  paddingBottom: keyboardVisible ? 24 : insets.bottom + NAV_BAR_HEIGHT + 32,
+                  gap: 16,
+                }}
                 keyboardShouldPersistTaps="handled"
+                automaticallyAdjustKeyboardInsets
               >
                 {/* Name */}
                 <View className="gap-1.5">
@@ -534,8 +581,7 @@ export default function CreateRecommendation({ user }: { user: User }) {
                   )}
                 </Pressable>
               </ScrollView>
-            </View>
-          </KeyboardAvoidingView>
+          </View>
         </View>
       ) : null}
     </View>

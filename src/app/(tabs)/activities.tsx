@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { RealtimeChannel, User } from '@supabase/supabase-js';
 import { Bookmark, Compass, MessageCircle, Users } from 'lucide-react-native';
@@ -26,6 +26,7 @@ function Feed({ user }: { user: User }) {
   const [saveCounts, setSaveCounts] = useState<Record<string, number>>({});
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const mounted = useRef(true);
 
@@ -48,6 +49,12 @@ function Feed({ user }: { user: User }) {
     },
     [user.id],
   );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load({ silent: true });
+    if (mounted.current) setRefreshing(false);
+  }, [load]);
 
   useEffect(() => {
     mounted.current = true;
@@ -113,6 +120,14 @@ function Feed({ user }: { user: User }) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#226622"
+            colors={['#226622']}
+          />
+        }
         ListEmptyComponent={
           <View className="mt-10 items-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-14">
             <Compass size={36} color="#cbd5e1" />
@@ -133,6 +148,7 @@ function Feed({ user }: { user: User }) {
             <ActivityCard
               id={item.id}
               placeName={item.placeName}
+              address={item.address}
               latitude={item.latitude}
               longitude={item.longitude}
               isMustSee={item.isMustSee}

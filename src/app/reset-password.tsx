@@ -6,6 +6,7 @@ import { Lock } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
+import LegalFooter from '@/components/LegalFooter';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -86,6 +87,7 @@ export default function ResetPasswordScreen() {
               <Button label="Passwort speichern" trailingArrow loading={loading} onPress={handleSubmit} />
             </View>
           </View>
+          <LegalFooter />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

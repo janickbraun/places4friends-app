@@ -20,6 +20,7 @@ export interface FeedFriend {
 export interface FeedActivity {
   id: string;
   placeName: string;
+  address: string | null;
   latitude: number | null;
   longitude: number | null;
   isMustSee: boolean;
@@ -100,7 +101,7 @@ export async function fetchActivitiesFeed(
     const { data } = await supabase
       .from('activities')
       .select(
-        'id, user_id, place_name, latitude, longitude, is_superlike, description, created_at, categories, image_urls, map_snapshot_url',
+        'id, user_id, place_name, place_address, latitude, longitude, is_superlike, description, created_at, categories, image_urls, map_snapshot_url',
       )
       .in('user_id', friendIds)
       .order('created_at', { ascending: false });
@@ -119,6 +120,7 @@ export async function fetchActivitiesFeed(
         return {
           id: act.id,
           placeName: act.place_name,
+          address: act.place_address ?? null,
           latitude: act.latitude,
           longitude: act.longitude,
           isMustSee: act.is_superlike,

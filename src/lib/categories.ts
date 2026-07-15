@@ -1,4 +1,5 @@
-// Place categories — same set/order as the web RecommendView.
+// Place categories — mostly mirrors the web RecommendView, with local tweaks
+// (no Bildung/Event; added Skate-Spot).
 export const PLACE_CATEGORIES = [
   'Cafe',
   'Restaurant',
@@ -12,10 +13,9 @@ export const PLACE_CATEGORIES = [
   'Date',
   'Freizeit',
   'Piss-Spot',
-  'Bildung',
   'Einkaufen',
   'Sport',
-  'Event',
+  'Skate-Spot',
 ] as const;
 
 export type PlaceCategory = (typeof PLACE_CATEGORIES)[number];

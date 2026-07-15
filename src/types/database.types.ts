@@ -233,6 +233,53 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          activity_id: string | null
+          actor_id: string | null
+          body: string
+          created_at: string
+          data: Json
+          id: string
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          activity_id?: string | null
+          actor_id?: string | null
+          body: string
+          created_at?: string
+          data?: Json
+          id?: string
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string | null
+          actor_id?: string | null
+          body?: string
+          created_at?: string
+          data?: Json
+          id?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

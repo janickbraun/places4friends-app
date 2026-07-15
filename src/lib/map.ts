@@ -9,6 +9,11 @@ export const MAP_PIN_LIMIT = 400;
  *  overview, mirroring the web's `reset-map-zoom` window event. */
 export const MAP_RESET_ZOOM_EVENT = 'p4f:reset-map-zoom';
 
+/** Emitted (via DeviceEventEmitter) to make the map re-fetch its markers in
+ *  place — e.g. after the current user changes their avatar — so pin avatars
+ *  refresh without requiring a manual pan. */
+export const MAP_REFRESH_PINS_EVENT = 'p4f:refresh-map-pins';
+
 // Center of Germany — the web app's fallback viewport.
 export const DEFAULT_REGION: Region = {
   latitude: 51.1657,
@@ -38,6 +43,7 @@ export interface MapPin {
 }
 
 export interface MapPlaceDetails {
+  address: string | null;
   review: string;
   categories: string[];
   imageUrls: string[];
@@ -241,7 +247,7 @@ export async function fetchPlaceDetails(
     await Promise.all([
       supabase
         .from('activities')
-        .select('description, categories, image_urls, created_at')
+        .select('place_address, description, categories, image_urls, created_at')
         .eq('id', id)
         .single(),
       supabase
@@ -259,6 +265,7 @@ export async function fetchPlaceDetails(
     ]);
   if (error || !data) return null;
   return {
+    address: data.place_address ?? null,
     review: data.description ?? '',
     categories: Array.isArray(data.categories) ? data.categories : [],
     imageUrls: Array.isArray(data.image_urls) ? data.image_urls : [],

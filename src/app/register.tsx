@@ -15,6 +15,7 @@ import { getSignupErrorMessage } from '@/lib/authErrors';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
+import LegalFooter from '@/components/LegalFooter';
 
 function Checkbox({
   checked,
@@ -331,6 +332,7 @@ export default function RegisterScreen() {
               </View>
             </View>
           </View>
+          <LegalFooter />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { Button } from '@/components/ui/Button';
+import LegalFooter from '@/components/LegalFooter';
 
 export type AuthContext = 'profile' | 'create' | 'activities' | 'friends';
 
@@ -64,6 +65,8 @@ export default function AuthPrompt({ context }: { context: AuthContext }) {
           onPress={() => router.push('/register')}
         />
       </View>
+
+      <LegalFooter />
     </View>
   );
 }

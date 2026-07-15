@@ -4,13 +4,16 @@ import { useEffect } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import AuthProvider, { useAuth } from '@/components/auth/AuthProvider';
 import OnboardingOverlay from '@/components/OnboardingOverlay';
+import {
+  addNotificationEventListener,
+  consumeInitialNotificationEvent,
+} from '@/lib/notifications';
 
 const queryClient = new QueryClient();
 
@@ -32,25 +35,19 @@ function RootNavigator() {
   }, [loading]);
 
   // Route to the relevant screen when a push notification is tapped, both for
-  // in-session taps and for a cold start launched by a notification.
+  // in-session taps and for a cold start launched by a notification. All
+  // expo-notifications access is guarded in @/lib/notifications so a missing
+  // native module degrades to a no-op instead of crashing the root layout.
   useEffect(() => {
     if (loading) return;
 
-    const handle = (response: Notifications.NotificationResponse | null) => {
-      const data = response?.notification.request.content.data as { event?: string } | undefined;
-      if (data?.event) router.push(routeForEvent(data.event));
-    };
-
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) {
-        handle(response);
-        // Clear it so a later normal launch doesn't re-navigate.
-        Notifications.clearLastNotificationResponseAsync();
-      }
+    void consumeInitialNotificationEvent().then((event) => {
+      if (event) router.push(routeForEvent(event));
     });
 
-    const sub = Notifications.addNotificationResponseReceivedListener(handle);
-    return () => sub.remove();
+    return addNotificationEventListener((event) => {
+      router.push(routeForEvent(event));
+    });
   }, [loading]);
 
   if (loading) {

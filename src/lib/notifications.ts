@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { supabase } from '@/lib/supabase';
 import { isExpoGo } from '@/lib/runtime';
 
@@ -10,6 +9,15 @@ import { isExpoGo } from '@/lib/runtime';
  * login; each mutation fires `notifyPush` (fire-and-forget) which calls the
  * `send-push` Edge Function. The Edge Function resolves recipients server-side,
  * so the client only needs to name the event and the relevant id.
+ *
+ * `expo-notifications` pulls in native modules (e.g. `ExpoPushTokenManager`)
+ * that are ABSENT in Expo Go, on the iOS Simulator, and in any dev build made
+ * before the package was added. Importing it eagerly there throws at module
+ * evaluation — and because this file loads at startup (AuthProvider → BottomNav
+ * → _layout), that used to take the whole app down. We therefore load it lazily
+ * behind a guard so push cleanly degrades to a no-op when unavailable, per the
+ * `isExpoGo` graceful-degradation convention. All `expo-notifications` access in
+ * the app funnels through this module for the same reason.
  */
 
 export type PushEvent = 'new_place' | 'comment' | 'save' | 'friend_request' | 'friend_accept';
@@ -21,15 +29,42 @@ export interface NotifyPushPayload {
   targetUserId?: string;
 }
 
-// Show the banner + play a sound even when the app is in the foreground.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+type NotificationsModule = typeof import('expo-notifications');
+
+// `undefined` = not yet attempted, `null` = attempted and unavailable.
+let notificationsModule: NotificationsModule | null | undefined;
+
+/**
+ * Lazily load `expo-notifications`. Returns `null` (never throws) when the
+ * native module isn't in the binary, so callers can guard with a simple
+ * null-check instead of risking a crash.
+ */
+function getNotifications(): NotificationsModule | null {
+  if (notificationsModule !== undefined) return notificationsModule;
+  if (isExpoGo) {
+    notificationsModule = null;
+    return null;
+  }
+  try {
+    // Dynamic require so a missing native module is a catchable error rather
+    // than an uncatchable module-eval crash.
+    const mod = require('expo-notifications') as NotificationsModule;
+    // Show the banner + play a sound even when the app is in the foreground.
+    mod.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+    notificationsModule = mod;
+  } catch (err) {
+    if (__DEV__) console.warn('expo-notifications unavailable; push disabled:', err);
+    notificationsModule = null;
+  }
+  return notificationsModule;
+}
 
 // Remember this device's token so we can delete exactly it on sign-out.
 let cachedToken: string | null = null;
@@ -44,10 +79,11 @@ function getProjectId(): string | undefined {
 /**
  * Request notification permission, obtain the Expo push token and store it in
  * `push_tokens`. Returns the token, or `null` when push is unavailable (Expo Go,
- * simulator, permission denied, missing project id).
+ * simulator, permission denied, missing project id, missing native module).
  */
 export async function registerForPushNotificationsAsync(userId: string): Promise<string | null> {
-  if (isExpoGo || !Device.isDevice) return null;
+  const Notifications = getNotifications();
+  if (!Notifications || isExpoGo || !Device.isDevice) return null;
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -93,7 +129,8 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
 
 /** Returns whether the OS notification permission is currently granted. */
 export async function hasNotificationPermission(): Promise<boolean> {
-  if (isExpoGo || !Device.isDevice) return false;
+  const Notifications = getNotifications();
+  if (!Notifications || isExpoGo || !Device.isDevice) return false;
   const { status } = await Notifications.getPermissionsAsync();
   return status === 'granted';
 }
@@ -109,7 +146,8 @@ export async function removeCurrentPushToken(): Promise<void> {
 /**
  * Ask the `send-push` Edge Function to deliver a notification for an event the
  * current user just performed. Best-effort: never throws into the calling
- * mutation, so a push failure can't break the underlying action.
+ * mutation, so a push failure can't break the underlying action. Also drives
+ * the in-app notification feed (the Edge Function persists a row per recipient).
  */
 export async function notifyPush(payload: NotifyPushPayload): Promise<void> {
   try {
@@ -117,4 +155,38 @@ export async function notifyPush(payload: NotifyPushPayload): Promise<void> {
   } catch (err) {
     if (__DEV__) console.warn('notifyPush failed:', err);
   }
+}
+
+/**
+ * The `event` from the notification that cold-started the app (a push the user
+ * tapped while the app was closed), consuming it so a later launch doesn't
+ * re-navigate. Returns `null` when push is unavailable or there was none.
+ */
+export async function consumeInitialNotificationEvent(): Promise<string | null> {
+  const Notifications = getNotifications();
+  if (!Notifications) return null;
+  try {
+    const response = await Notifications.getLastNotificationResponseAsync();
+    if (!response) return null;
+    Notifications.clearLastNotificationResponseAsync();
+    const data = response.notification.request.content.data as { event?: string } | undefined;
+    return data?.event ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Subscribe to notification taps that happen while the app is running. `handler`
+ * receives the event name. Returns an unsubscribe fn (a no-op when push is
+ * unavailable), so callers can always `return remove` from an effect.
+ */
+export function addNotificationEventListener(handler: (event: string) => void): () => void {
+  const Notifications = getNotifications();
+  if (!Notifications) return () => {};
+  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const data = response.notification.request.content.data as { event?: string } | undefined;
+    if (data?.event) handler(data.event);
+  });
+  return () => sub.remove();
 }

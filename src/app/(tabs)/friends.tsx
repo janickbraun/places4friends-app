@@ -4,6 +4,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   Share,
   Text,
@@ -79,6 +80,7 @@ function FriendsContent({ user }: { user: User }) {
   const [outgoing, setOutgoing] = useState<FriendProfile[]>([]);
   const [raw, setRaw] = useState<RawFriendship[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [creatingInvite, setCreatingInvite] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -100,6 +102,12 @@ function FriendsContent({ user }: { user: User }) {
     setRaw(data.raw);
     setLoading(false);
   }, [user.id]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    if (mounted.current) setRefreshing(false);
+  }, [load]);
 
   useEffect(() => {
     mounted.current = true;
@@ -265,7 +273,17 @@ function FriendsContent({ user }: { user: User }) {
       {Header}
       <VerificationBanner />
       {Tabs}
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#226622"
+            colors={['#226622']}
+          />
+        }
+      >
         {tab === 'friends' ? (
           <>
             {/* Invite card */}
