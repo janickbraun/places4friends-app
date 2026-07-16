@@ -32,7 +32,10 @@ function buildEmailHtml(verificationUrl: string, recipientName: string): string 
       p{font-size:15px;color:#475569;margin-bottom:24px;}
       .btn-container{margin:32px 0;text-align:center;}
       .btn{display:inline-block;background-color:#15803d;color:#fff !important;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 10px 15px -3px rgba(21,128,61,0.1),0 4px 6px -4px rgba(21,128,61,0.1);}
-      .footer{background-color:#f8fafc;padding:24px 32px;border-top:1px solid #e2e8f0;text-align:center;font-size:13px;color:#94a3b8;}
+      .footer{background-color:#f8fafc;padding:24px 32px;border-top:1px solid #e2e8f0;text-align:center;font-size:12px;color:#94a3b8;line-height:1.5;}
+      .footer p{font-size:12px;color:#94a3b8;margin:0 0 10px;}
+      .footer p:last-child{margin-bottom:0;}
+      .footer a{color:#64748b;text-decoration:underline;}
     </style>
   </head>
   <body>
@@ -46,7 +49,11 @@ function buildEmailHtml(verificationUrl: string, recipientName: string): string 
         <p>Falls der Button oben nicht funktioniert, kannst du auch den folgenden Link kopieren und in deinen Browser einfügen:</p>
         <p style="word-break:break-all;font-size:13px;color:#64748b;">${verificationUrl}</p>
       </div>
-      <div class="footer">Diese E-Mail wurde automatisch gesendet. Falls du dich nicht bei places4friends registriert hast, kannst du diese Nachricht ignorieren.</div>
+      <div class="footer">
+        <p>Diese E-Mail wurde automatisch versendet, weil mit dieser Adresse ein places4friends-Konto registriert wurde. Falls du dich nicht registriert hast, kannst du diese Nachricht ignorieren &ndash; es werden dir keine weiteren E-Mails gesendet.</p>
+        <p>Anbieter: Janick Braun &middot; Krottenkopfstr. 24a &middot; 82377 Penzberg &middot; Deutschland<br>Kontakt: <a href="mailto:mail@janickbraun.com">mail@janickbraun.com</a></p>
+        <p><a href="https://places4friends.com/impressum">Impressum</a> &middot; <a href="https://places4friends.com/datenschutz">Datenschutz</a> &middot; <a href="https://places4friends.com/agb">AGB</a></p>
+      </div>
     </div>
   </body>
 </html>`;
@@ -125,6 +132,7 @@ Deno.serve(async (req: Request) => {
     headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from: fromEmail,
+      reply_to: 'mail@janickbraun.com',
       to: [email],
       subject: 'Bestätige deine E-Mail-Adresse - places4friends',
       html: buildEmailHtml(verificationUrl, profile.full_name || ''),
