@@ -115,7 +115,10 @@ Deno.serve(async (req: Request) => {
   }
 
   const verificationUrl = `${supabaseUrl}/functions/v1/verify-email?token=${encodeURIComponent(token)}`;
-  const fromEmail = Deno.env.get('RESEND_FROM') ?? 'places4friends <onboarding@resend.dev>';
+  // Defaults to our verified Resend domain. (Resend's shared `onboarding@resend.dev`
+  // sandbox sender only delivers to the Resend account owner's own address, so it
+  // 403s for real users.) Override via the RESEND_FROM secret if the sender changes.
+  const fromEmail = Deno.env.get('RESEND_FROM') ?? 'places4friends <noreply@places4friends.com>';
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
