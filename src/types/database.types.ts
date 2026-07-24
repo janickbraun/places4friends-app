@@ -467,6 +467,21 @@ export type Database = {
           },
         ]
       }
+      user_email_hashes: {
+        Row: {
+          email_hash: string
+          user_id: string
+        }
+        Insert: {
+          email_hash: string
+          user_id: string
+        }
+        Update: {
+          email_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wishlist: {
         Row: {
           activity_id: string
@@ -511,12 +526,41 @@ export type Database = {
       accept_friend_invite: { Args: { p_token: string }; Returns: Json }
       block_user: { Args: { p_target: string }; Returns: undefined }
       delete_own_user: { Args: never; Returns: undefined }
+      email_hash: { Args: { p_email: string }; Returns: string }
+      find_contacts_on_p4f: {
+        Args: { p_email_hashes: string[] }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+          mutual_count: number
+          username: string
+        }[]
+      }
+      get_friend_suggestions: {
+        Args: { p_limit?: number }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+          mutual_count: number
+          username: string
+        }[]
+      }
       has_blocked: {
         Args: { p_blocker: string; p_target: string }
         Returns: boolean
       }
       is_blocked_between: { Args: { a: string; b: string }; Returns: boolean }
       is_friend_of: { Args: { p_target: string }; Returns: boolean }
+      is_suggestable: {
+        Args: { p_candidate: string; p_uid: string }
+        Returns: boolean
+      }
+      mutual_friend_count: {
+        Args: { p_candidate: string; p_uid: string }
+        Returns: number
+      }
       redeem_friend_invite_link: { Args: { p_token: string }; Returns: Json }
       unblock_user: { Args: { p_target: string }; Returns: undefined }
       validate_friend_invite_link: { Args: { p_token: string }; Returns: Json }

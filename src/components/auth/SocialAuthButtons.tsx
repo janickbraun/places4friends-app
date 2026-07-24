@@ -3,6 +3,7 @@ import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { isExpoGo } from '@/lib/runtime';
+import { consumePendingInviteRoute } from '@/lib/pendingInvite';
 import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { AppleIcon } from '@/components/ui/AppleIcon';
 
@@ -28,6 +29,17 @@ export function SocialAuthButtons({ mode, onError, guard, showDivider = true }: 
   const router = useRouter();
   const [loading, setLoading] = useState<null | 'google' | 'apple'>(null);
   const verb = mode === 'register' ? 'registrieren' : 'anmelden';
+
+  /**
+   * Where to go once signed in: a pending invite (opened while signed out) wins,
+   * otherwise new accounts land on the Freunde tab — a fresh account's map is
+   * empty, so adding friends is the only useful first step — and returning
+   * users land on the map as before.
+   */
+  const goAfterAuth = async () => {
+    const invite = await consumePendingInviteRoute();
+    router.replace(invite ?? (mode === 'register' ? '/friends' : '/'));
+  };
 
   const handleGoogle = async () => {
     if (guard && !guard()) return;
@@ -61,7 +73,7 @@ export function SocialAuthButtons({ mode, onError, guard, showDivider = true }: 
         token: idToken,
       });
       if (error) throw error;
-      router.replace('/');
+      await goAfterAuth();
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Google-Anmeldung fehlgeschlagen.');
     } finally {
@@ -106,7 +118,7 @@ export function SocialAuthButtons({ mode, onError, guard, showDivider = true }: 
           .eq('id', data.user.id)
           .is('full_name', null);
       }
-      router.replace('/');
+      await goAfterAuth();
     } catch (e) {
       // User-cancelled the native sheet -> stay silent.
       if (e instanceof Error && 'code' in e && (e as { code?: string }).code === 'ERR_REQUEST_CANCELED') {

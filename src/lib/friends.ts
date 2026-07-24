@@ -131,7 +131,16 @@ export function deleteFriendship(friendshipId: string) {
 const INVITE_MAX_USES = 10;
 const INVITE_VALIDITY_DAYS = 30;
 
-/** Create a friend invite link (RLS allows the creator to insert). */
+/**
+ * Create a friend invite link (RLS allows the creator to insert).
+ *
+ * The link points at `/invite/<token>` rather than the profile URL because that
+ * is the only path the app claims as a universal / app link — claiming
+ * `/profile/*` would also swallow the web app's `/profile/settings` and
+ * `/profile/friends` pages. Both the app and the website resolve the token to
+ * the creator's profile from there. Links issued in the older
+ * `/profile/<id>?invite=<token>` shape keep working on both.
+ */
 export async function createFriendInviteLink(userId: string): Promise<string> {
   const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random()
     .toString(36)
@@ -144,7 +153,7 @@ export async function createFriendInviteLink(userId: string): Promise<string> {
     expires_at: expiresAt,
   });
   if (error) throw error;
-  return `${SITE_URL}/profile/${userId}?invite=${token}`;
+  return `${SITE_URL}/invite/${token}`;
 }
 
 export type InviteValidationError = 'not_found' | 'expired' | 'max_uses';

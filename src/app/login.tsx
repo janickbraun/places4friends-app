@@ -13,6 +13,7 @@ import * as Linking from 'expo-linking';
 import { ArrowLeft, Lock, Mail } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { getLoginErrorMessage } from '@/lib/authErrors';
+import { consumePendingInviteRoute } from '@/lib/pendingInvite';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
@@ -50,7 +51,8 @@ export default function LoginScreen() {
       setLoading(false);
       return;
     }
-    router.replace('/');
+    // An invite opened while signed out takes precedence over the map.
+    router.replace((await consumePendingInviteRoute()) ?? '/');
   };
 
   const handleForgot = async () => {

@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react-native';
 import AuthGate from '@/components/auth/AuthGate';
+import { useAuth } from '@/components/auth/AuthProvider';
 import ActivityCard from '@/components/ActivityCard';
 import { ReportMenu } from '@/components/ReportMenu';
 import { PopoverMenu, type PopoverMenuItem } from '@/components/ui/PopoverMenu';
@@ -50,6 +51,7 @@ import {
   type InviteValidationError,
 } from '@/lib/friends';
 import { getInitials, getUserColor } from '@/lib/format';
+import { setPendingInvite } from '@/lib/pendingInvite';
 
 type InviteState = 'idle' | 'loading' | 'valid' | InviteValidationError;
 
@@ -664,11 +666,20 @@ function FriendActionButton({
 export default function PublicProfileScreen() {
   const { id, invite } = useLocalSearchParams<{ id: string; invite?: string }>();
   const inviteToken = typeof invite === 'string' && invite.length > 0 ? invite : null;
+  const { user, loading } = useAuth();
+
+  // Reached by an invite link while signed out (older `/profile/<id>?invite=`
+  // links land here directly): park the token so registering brings the user
+  // back to this profile with the invite card, instead of dropping it.
+  useEffect(() => {
+    if (loading || user || !inviteToken) return;
+    void setPendingInvite({ token: inviteToken, profileId: id });
+  }, [loading, user, inviteToken, id]);
 
   return (
-    <AuthGate context="profile" headerTitle="Profil">
-      {(user) => (
-        <PublicProfileContent profileId={id} inviteToken={inviteToken} user={user} />
+    <AuthGate context={inviteToken ? 'invite' : 'profile'} headerTitle="Profil">
+      {(authedUser) => (
+        <PublicProfileContent profileId={id} inviteToken={inviteToken} user={authedUser} />
       )}
     </AuthGate>
   );

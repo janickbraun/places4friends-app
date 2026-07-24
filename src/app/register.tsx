@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft, AtSign, Check, Lock, Mail, User } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { getSignupErrorMessage } from '@/lib/authErrors';
+import { consumePendingInviteRoute } from '@/lib/pendingInvite';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
@@ -158,7 +159,10 @@ export default function RegisterScreen() {
       return;
     }
 
-    router.replace('/');
+    // Straight to the Freunde tab: a fresh account has an empty map, so the
+    // first useful thing to do is add friends. An invite the user opened while
+    // signed out wins — it takes them to the inviter's profile instead.
+    router.replace((await consumePendingInviteRoute()) ?? '/friends');
   };
 
   return (

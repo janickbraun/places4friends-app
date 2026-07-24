@@ -13,6 +13,7 @@
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.janickbraun.places4friends",
       "usesAppleSignIn": true,
+      "associatedDomains": ["applinks:places4friends.com", "applinks:www.places4friends.com"],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Wir verwenden deinen Standort, um Orte in deiner Nähe auf der Karte anzuzeigen.",
         "NSPhotoLibraryUsageDescription": "Wir verwenden deine Fotos, um sie zu deinen Ortsempfehlungen hinzuzufügen.",
@@ -32,10 +33,22 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.janickbraun.places4friends",
       "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "places4friends.com", "pathPrefix": "/invite" },
+            { "scheme": "https", "host": "www.places4friends.com", "pathPrefix": "/invite" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
-        "android.permission.SYSTEM_ALERT_WINDOW"
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WRITE_CONTACTS"
       ]
     },
     "web": {
@@ -89,6 +102,12 @@
         {
           "icon": "./assets/images/android-icon-monochrome.png",
           "color": "#226622"
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Wir gleichen deine Kontakte ab, um dir Freunde vorzuschlagen, die places4friends schon nutzen. Deine Kontakte verlassen dein Gerät dabei nicht."
         }
       ]
     ],
