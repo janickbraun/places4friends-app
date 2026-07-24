@@ -18,6 +18,7 @@ import { addToWishlist, removeFromWishlist } from '@/lib/activities';
 import { ReportMenu } from '@/components/ReportMenu';
 import { CommentsThread } from '@/components/activities/CommentsThread';
 import { PlaceDetailSkeleton } from '@/components/skeletons/PlaceDetailSkeleton';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 
 type Props = {
   pin: MapPin | null;
@@ -30,6 +31,7 @@ type Props = {
 export function PlaceDetailSheet({ pin, details, loading, currentUserId, onClose }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const keyboardHeight = useKeyboardHeight();
   const visible = pin !== null;
 
   // Comments stay collapsed until the user taps the comment action — matching
@@ -90,12 +92,21 @@ export function PlaceDetailSheet({ pin, details, loading, currentUserId, onClose
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1 justify-end bg-black/30" onPress={onClose}>
+        {/* iOS lifts the sheet through KeyboardAvoidingView. On Android that is
+            a no-op (behavior undefined) because it relied on the window being
+            resized for the IME — which edge-to-edge no longer does, leaving the
+            keyboard on top of the sheet. `keyboardHeight` is the Android-only
+            replacement: the sheet is bottom-anchored, so extra bottom padding
+            lifts its content clear of the keyboard. */}
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           {/* Stop propagation: tapping the card should not close. */}
           <Pressable
             className="rounded-t-3xl bg-white px-5 pt-3"
             onPress={(e) => e.stopPropagation()}
-            style={{ boxShadow: '0px -4px 24px rgba(0,0,0,0.12)', paddingBottom: insets.bottom + 20 }}
+            style={{
+              boxShadow: '0px -4px 24px rgba(0,0,0,0.12)',
+              paddingBottom: insets.bottom + 20 + keyboardHeight,
+            }}
           >
             <View className="mb-3 h-1.5 w-10 self-center rounded-full bg-slate-200" />
 
@@ -148,7 +159,9 @@ export function PlaceDetailSheet({ pin, details, loading, currentUserId, onClose
                   <PlaceDetailSkeleton />
                 ) : (
                   <ScrollView
-                    style={{ maxHeight: 440 }}
+                    // Give back what the lift above took, so a tall sheet plus
+                    // keyboard can't grow past the top of the screen.
+                    style={{ maxHeight: Math.max(220, 440 - keyboardHeight) }}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                   >

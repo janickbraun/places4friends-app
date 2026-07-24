@@ -8,6 +8,7 @@ import ActivityCard from '@/components/ActivityCard';
 import { ReportMenu } from '@/components/ReportMenu';
 import VerificationBanner from '@/components/VerificationBanner';
 import { CommentsThread } from '@/components/activities/CommentsThread';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { ActivityCardSkeletonList } from '@/components/skeletons/ActivityCardSkeleton';
 import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -28,6 +29,7 @@ function Feed({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const keyboardHeight = useKeyboardHeight();
   const mounted = useRef(true);
 
   const load = useCallback(
@@ -118,7 +120,10 @@ function Feed({ user }: { user: User }) {
       <FlatList
         data={activities}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: 120, gap: 16 }}
+        // Extra room for the Android keyboard: under edge-to-edge the window
+        // isn't resized for the IME, so without this the comment composer stays
+        // buried underneath it (see useKeyboardHeight).
+        contentContainerStyle={{ padding: 16, paddingBottom: 120 + keyboardHeight, gap: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl

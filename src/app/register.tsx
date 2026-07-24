@@ -148,8 +148,18 @@ export default function RegisterScreen() {
       return;
     }
 
-    // TODO (edge functions task): trigger the custom Resend verification email
-    // via the `send-verification-email` Edge Function.
+    // Send the verification mail right away instead of waiting for the user to
+    // tap the VerificationBanner. Fire-and-forget: the account exists either
+    // way, so a mail failure must not block sign-up — the banner's button stays
+    // as the manual retry. Needs the session's JWT (the function identifies the
+    // caller from it), so it only runs once sign-up returned one.
+    if (data.session) {
+      void supabase.functions
+        .invoke('send-verification-email')
+        .catch((err) => {
+          if (__DEV__) console.warn('Verification mail could not be sent:', err);
+        });
+    }
 
     if (!data.session) {
       setSuccess(

@@ -19,6 +19,7 @@ import AuthGate from '@/components/auth/AuthGate';
 import ActivityCard from '@/components/ActivityCard';
 import { NotificationBell } from '@/components/NotificationBell';
 import { CommentsThread } from '@/components/activities/CommentsThread';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ProfileHeaderSkeleton } from '@/components/skeletons/ProfileHeaderSkeleton';
@@ -51,6 +52,7 @@ function ProfileContent({ user }: { user: User }) {
   const [tab, setTab] = useState<Tab>('recs');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const keyboardHeight = useKeyboardHeight();
   const [editing, setEditing] = useState<FeedActivity | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -261,7 +263,12 @@ function ProfileContent({ user }: { user: User }) {
         keyExtractor={(item) => item.id}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={<LegalFooter />}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120, gap: 16 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          // Room for the Android keyboard (see useKeyboardHeight).
+          paddingBottom: 120 + keyboardHeight,
+          gap: 16,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

@@ -52,6 +52,7 @@ import {
 } from '@/lib/friends';
 import { getInitials, getUserColor } from '@/lib/format';
 import { setPendingInvite } from '@/lib/pendingInvite';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 
 type InviteState = 'idle' | 'loading' | 'valid' | InviteValidationError;
 
@@ -74,6 +75,7 @@ function PublicProfileContent({
   const [data, setData] = useState<PublicProfileData | null>(null);
   const [friendship, setFriendship] = useState<PublicFriendship | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const keyboardHeight = useKeyboardHeight();
 
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [saveCounts, setSaveCounts] = useState<Record<string, number>>({});
@@ -320,7 +322,8 @@ function PublicProfileContent({
     <View className="flex-1 bg-slate-50">
       {renderHeader(<PopoverMenu items={menuItems} iconColor="#64748b" />)}
       <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+        // Room for the Android keyboard (see useKeyboardHeight).
+        contentContainerStyle={{ padding: 16, paddingBottom: 120 + keyboardHeight }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Profile card */}
