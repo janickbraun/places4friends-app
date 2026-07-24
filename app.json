@@ -13,7 +13,7 @@
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.janickbraun.places4friends",
       "usesAppleSignIn": true,
-      "associatedDomains": ["applinks:places4friends.com", "applinks:www.places4friends.com"],
+      "associatedDomains": ["applinks:places4friends.com"],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Wir verwenden deinen Standort, um Orte in deiner Nähe auf der Karte anzuzeigen.",
         "NSPhotoLibraryUsageDescription": "Wir verwenden deine Fotos, um sie zu deinen Ortsempfehlungen hinzuzufügen.",
@@ -37,10 +37,7 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "data": [
-            { "scheme": "https", "host": "places4friends.com", "pathPrefix": "/invite" },
-            { "scheme": "https", "host": "www.places4friends.com", "pathPrefix": "/invite" }
-          ],
+          "data": [{ "scheme": "https", "host": "places4friends.com", "pathPrefix": "/invite" }],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
